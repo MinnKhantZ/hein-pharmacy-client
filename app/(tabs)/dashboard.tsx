@@ -1,0 +1,147 @@
+import React from 'react';
+import {
+  View,
+  Text,
+  StyleSheet,
+  ScrollView,
+  TouchableOpacity,
+} from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { router } from 'expo-router';
+import { useAuth } from '../../contexts/AuthContext';
+import { useTranslation } from 'react-i18next';
+
+export default function DashboardScreen() {
+  const { user } = useAuth();
+  const { t } = useTranslation();
+
+  const dashboardItems = [
+    {
+      title: t('Add New Item'),
+      description: t('Add new inventory items'),
+      action: () => router.push('/(tabs)/inventory'),
+      color: '#4CAF50',
+      icon: '📦',
+    },
+    {
+      title: t('Make Sale'),
+      description: t('Record new sales'),
+      action: () => router.push('/(tabs)/sales'),
+      color: '#2196F3',
+      icon: '💰',
+    },
+    {
+      title: t('View Inventory'),
+      description: t('Manage your inventory'),
+      action: () => router.push('/(tabs)/inventory'),
+      color: '#FF9800',
+      icon: '📋',
+    },
+    {
+      title: t('Income Reports'),
+      description: t('View income analytics'),
+      action: () => router.push('/(tabs)/income'),
+      color: '#9C27B0',
+      icon: '📊',
+    },
+  ];
+
+  return (
+    <SafeAreaView style={styles.container}>
+      <ScrollView contentContainerStyle={styles.scrollContainer}>
+        <View style={styles.header}>
+          <Text style={styles.welcomeText}>{t('Welcome back,')}</Text>
+          <Text style={styles.userName}>{(user as any)?.full_name || 'User'}</Text>
+          <Text style={styles.subtitle}>{t('Hein Pharmacy Management')}</Text>
+        </View>
+
+        <View style={styles.quickActionsContainer}>
+          <Text style={styles.sectionTitle}>{t('Quick Actions')}</Text>
+          <View style={styles.grid}>
+            {dashboardItems.map((item, index) => (
+              <TouchableOpacity
+                key={index}
+                style={[styles.card, { backgroundColor: item.color }]}
+                onPress={item.action}
+                activeOpacity={0.8}
+              >
+                <Text style={styles.cardIcon}>{item.icon}</Text>
+                <Text style={styles.cardTitle}>{item.title}</Text>
+                <Text style={styles.cardDescription}>{item.description}</Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        </View>
+      </ScrollView>
+    </SafeAreaView>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: '#f5f5f5',
+  },
+  scrollContainer: {
+    padding: 20,
+  },
+  header: {
+    marginBottom: 30,
+    paddingTop: 20,
+  },
+  welcomeText: {
+    fontSize: 18,
+    color: '#666',
+  },
+  userName: {
+    fontSize: 28,
+    fontWeight: 'bold',
+    color: '#333',
+    marginTop: 5,
+  },
+  subtitle: {
+    fontSize: 16,
+    color: '#2196F3',
+    marginTop: 5,
+  },
+  quickActionsContainer: {
+    marginBottom: 30,
+  },
+  sectionTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#333',
+    marginBottom: 15,
+  },
+  grid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+  },
+  card: {
+    width: '48%',
+    padding: 20,
+    borderRadius: 12,
+    marginBottom: 15,
+    alignItems: 'center',
+    justifyContent: 'center',
+    minHeight: 120,
+  },
+  cardIcon: {
+    fontSize: 30,
+    marginBottom: 10,
+  },
+  cardTitle: {
+    color: 'white',
+    fontSize: 16,
+    fontWeight: 'bold',
+    textAlign: 'center',
+    marginBottom: 5,
+  },
+  cardDescription: {
+    color: 'white',
+    fontSize: 12,
+    textAlign: 'center',
+    opacity: 0.9,
+  },
+});

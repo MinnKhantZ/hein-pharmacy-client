@@ -1,7 +1,7 @@
 import axios from 'axios';
 import * as SecureStore from 'expo-secure-store';
 
-const API_BASE_URL = 'http://192.168.100.76:5000/api';
+const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL ?? "http://localhost:5000/api";
 
 // Create axios instance
 const api = axios.create({
@@ -44,6 +44,7 @@ export const authAPI = {
   register: (userData) => api.post('/auth/register', userData),
   getProfile: () => api.get('/auth/profile'),
   updateProfile: (userData) => api.put('/auth/profile', userData),
+  changePassword: (passwordData) => api.put('/auth/change-password', passwordData),
   getAllOwners: () => api.get('/auth/owners'),
   createOwner: (ownerData) => api.post('/auth/owners', ownerData),
   deleteOwner: (id) => api.delete(`/auth/owners/${id}`),
@@ -75,6 +76,23 @@ export const incomeAPI = {
   getIncomeByCategory: (params) => api.get('/income/by-category', { params }),
   getTopSellingItems: (params) => api.get('/income/top-selling', { params }),
   getOverallStats: (params) => api.get('/income/stats', { params }),
+};
+
+// Device API
+export const deviceAPI = {
+  registerDevice: (deviceData) => api.post('/devices/register', deviceData),
+  unregisterDevice: (pushToken) => api.post('/devices/unregister', { push_token: pushToken }),
+  getMyDevices: () => api.get('/devices/my-devices'),
+  getAllDevices: () => api.get('/devices/all'),
+  updatePreferences: (pushToken, preferences) => api.put('/devices/preferences', { 
+    push_token: pushToken, 
+    ...preferences 
+  }),
+  testNotification: (pushToken, title, body) => api.post('/devices/test-notification', { 
+    push_token: pushToken, 
+    title, 
+    body 
+  }),
 };
 
 export default api;

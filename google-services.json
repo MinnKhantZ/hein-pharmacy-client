@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "161386268685",
+    "project_id": "hein-pharmacy",
+    "storage_bucket": "hein-pharmacy.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:161386268685:android:c6268fc15b3a7daf95ad44",
+        "android_client_info": {
+          "package_name": "com.minkhantzaw.heinpharmacy"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDGSRZux4KY4dKhKGb548EdvoVXclHb39Q"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

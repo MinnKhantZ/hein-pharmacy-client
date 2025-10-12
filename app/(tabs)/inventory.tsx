@@ -1,22 +1,22 @@
-import React, { useState, useEffect, useContext } from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  ScrollView,
-  TouchableOpacity,
-  TextInput,
-  Alert,
-  RefreshControl,
-  Modal,
-  ActivityIndicator,
-} from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import RNPickerSelect from 'react-native-picker-select';
-import { inventoryAPI, authAPI } from '../../services/api';
-import { AuthContext } from '../../contexts/AuthContext';
-import { formatPrice } from '../../utils/priceFormatter';
+import React, { useContext, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import {
+  ActivityIndicator,
+  Alert,
+  Modal,
+  RefreshControl,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
+} from 'react-native';
+import RNPickerSelect from 'react-native-picker-select';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { AuthContext } from '../../contexts/AuthContext';
+import { authAPI, inventoryAPI } from '../../services/api';
+import { formatPrice } from '../../utils/priceFormatter';
 
 interface InventoryItem {
   id: number;
@@ -55,6 +55,10 @@ export default function InventoryScreen() {
   const [filterOwner, setFilterOwner] = useState<string>('');
   const [filterCategory, setFilterCategory] = useState<string>('');
   const [showFilters, setShowFilters] = useState(false);
+  
+  // Sort states
+  type SortOption = 'name' | 'stock_asc' | 'stock_desc' | 'price_asc' | 'price_desc' | 'recent';
+  const [sortBy, setSortBy] = useState<SortOption>('name');
   
   const [formData, setFormData] = useState({
     name: '',
@@ -96,8 +100,29 @@ export default function InventoryScreen() {
       filtered = filtered.filter((item) => item.category === filterCategory);
     }
     
-    setFilteredItems(filtered);
-  }, [searchQuery, items, filterOwner, filterCategory]);
+    // Apply sorting
+    const sorted = [...filtered].sort((a, b) => {
+      switch (sortBy) {
+        case 'name':
+          return a.name.localeCompare(b.name);
+        case 'stock_asc':
+          return a.quantity - b.quantity;
+        case 'stock_desc':
+          return b.quantity - a.quantity;
+        case 'price_asc':
+          return a.selling_price - b.selling_price;
+        case 'price_desc':
+          return b.selling_price - a.selling_price;
+        case 'recent':
+          // Assuming newer items have higher IDs
+          return b.id - a.id;
+        default:
+          return 0;
+      }
+    });
+    
+    setFilteredItems(sorted);
+  }, [searchQuery, items, filterOwner, filterCategory, sortBy]);
 
   const fetchItems = async () => {
     try {
@@ -266,6 +291,28 @@ export default function InventoryScreen() {
 
       {showFilters && (
         <View style={styles.filtersContainer}>
+          <View style={styles.filterRow}>
+            <Text style={styles.filterLabel}>{t('Sort by')}</Text>
+            <View style={styles.filterPickerContainer}>
+              <RNPickerSelect
+                value={sortBy}
+                onValueChange={(value: SortOption) => setSortBy(value)}
+                items={[
+                  { label: t('Name (A-Z)'), value: 'name' },
+                  { label: t('Stock (Low to High)'), value: 'stock_asc' },
+                  { label: t('Stock (High to Low)'), value: 'stock_desc' },
+                  { label: t('Price (Low to High)'), value: 'price_asc' },
+                  { label: t('Price (High to Low)'), value: 'price_desc' },
+                  { label: t('Recently Added'), value: 'recent' },
+                ]}
+                style={{
+                  inputIOS: styles.filterPicker,
+                  inputAndroid: styles.filterPicker,
+                  inputWeb: styles.filterPicker,
+                }}
+              />
+            </View>
+          </View>
           <View style={styles.filterRow}>
             <Text style={styles.filterLabel}>{t('Filter by Owner')}</Text>
             <View style={styles.filterPickerContainer}>
@@ -529,6 +576,7 @@ const styles = StyleSheet.create({
   },
   scrollView: {
     flex: 1,
+    paddingBottom: 100, // Extra padding for tab bar
   },
   emptyContainer: {
     padding: 40,

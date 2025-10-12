@@ -1,26 +1,38 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
-    ActivityIndicator,
-    Alert,
-    Modal,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
+  ActivityIndicator,
+  Alert,
+  Modal,
+  ScrollView,
+  StyleSheet,
+  Switch,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuth } from '../../contexts/AuthContext';
+import { useNotifications } from '../../contexts/NotificationContext';
 import { authAPI } from '../../services/api';
 
 export default function ProfileScreen() {
   const { user, logout } = useAuth();
+  const { 
+    notificationSettings: savedNotificationSettings, 
+    updateSettings: updateNotificationSettings,
+    permissionStatus,
+    requestPermissions,
+  } = useNotifications();
   const { t, i18n } = useTranslation();
   const [showEditModal, setShowEditModal] = useState(false);
   const [showSettingsModal, setShowSettingsModal] = useState(false);
   const [showCreateOwnerModal, setShowCreateOwnerModal] = useState(false);
+  const [showChangePasswordModal, setShowChangePasswordModal] = useState(false);
+  const [showPrivacyModal, setShowPrivacyModal] = useState(false);
+  const [showNotificationModal, setShowNotificationModal] = useState(false);
+  const [showTermsModal, setShowTermsModal] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const changeLanguage = (language: string) => {
@@ -28,6 +40,18 @@ export default function ProfileScreen() {
   };
 
   const currentLanguage = i18n.language;
+
+  // Settings state
+  const [privacySettings, setPrivacySettings] = useState({
+    showActivity: true,
+    dataCollection: true,
+    shareUsageData: false,
+  });
+
+  const [notificationSettings, setNotificationSettings] = useState({
+    lowStockAlerts: true,
+    salesNotifications: true,
+  });
   
   const [editForm, setEditForm] = useState({
     full_name: '',
@@ -43,6 +67,47 @@ export default function ProfileScreen() {
     email: '',
     phone: '',
   });
+
+  const [passwordForm, setPasswordForm] = useState({
+    currentPassword: '',
+    newPassword: '',
+    confirmPassword: '',
+  });
+
+  // Load notification settings from context when component mounts
+  useEffect(() => {
+    if (savedNotificationSettings) {
+      setNotificationSettings(savedNotificationSettings);
+    }
+  }, [savedNotificationSettings]);
+
+  // Handler to update notification settings
+  const handleNotificationToggle = async (key: string, value: boolean) => {
+    const newSettings = {
+      ...notificationSettings,
+      [key]: value,
+    };
+    
+    // Check if we need to request permissions
+    if (value && permissionStatus !== 'granted') {
+      const granted = await requestPermissions();
+      if (!granted) {
+        Alert.alert(
+          t('Permissions Required'),
+          t('Please enable notifications in your device settings to receive alerts.')
+        );
+        return;
+      }
+    }
+    
+    setNotificationSettings(newSettings);
+    await updateNotificationSettings(newSettings);
+    
+    Alert.alert(
+      t('Success'),
+      t('Notification settings updated successfully')
+    );
+  };
 
   const openEditModal = () => {
     const userData = user as any;
@@ -94,6 +159,47 @@ export default function ProfileScreen() {
     }
   };
 
+  const handleChangePassword = async () => {
+    if (!passwordForm.currentPassword) {
+      Alert.alert(t('Error'), t('Current password is required'));
+      return;
+    }
+
+    if (!passwordForm.newPassword) {
+      Alert.alert(t('Error'), t('New password is required'));
+      return;
+    }
+
+    if (passwordForm.newPassword.length < 6) {
+      Alert.alert(t('Error'), t('Password must be at least 6 characters'));
+      return;
+    }
+
+    if (passwordForm.newPassword !== passwordForm.confirmPassword) {
+      Alert.alert(t('Error'), t('Passwords do not match'));
+      return;
+    }
+
+    try {
+      setIsSubmitting(true);
+      await authAPI.changePassword({
+        currentPassword: passwordForm.currentPassword,
+        newPassword: passwordForm.newPassword,
+      });
+      Alert.alert(t('Success'), t('Password changed successfully'));
+      setShowChangePasswordModal(false);
+      setPasswordForm({
+        currentPassword: '',
+        newPassword: '',
+        confirmPassword: '',
+      });
+    } catch (error: any) {
+      Alert.alert(t('Error'), error.response?.data?.error || t('Failed to change password'));
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   const handleLogout = () => {
     Alert.alert(
       t('Logout'),
@@ -107,7 +213,7 @@ export default function ProfileScreen() {
 
   return (
     <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>
-      <ScrollView style={styles.content}>
+      <ScrollView style={styles.content} contentContainerStyle={styles.scrollView}>
         <Text style={styles.title}>{t('Profile')}</Text>
         <Text style={styles.subtitle}>{t('Manage your account settings')}</Text>
         
@@ -286,11 +392,23 @@ export default function ProfileScreen() {
 
             <View style={styles.settingsSection}>
               <Text style={styles.sectionTitle}>{t('Account')}</Text>
-              <TouchableOpacity style={styles.settingItem}>
+              <TouchableOpacity 
+                style={styles.settingItem}
+                onPress={() => {
+                  setShowSettingsModal(false);
+                  setTimeout(() => setShowChangePasswordModal(true), 300);
+                }}
+              >
                 <Text style={styles.settingText}>{t('Change Password')}</Text>
                 <Text style={styles.settingArrow}>›</Text>
               </TouchableOpacity>
-              <TouchableOpacity style={styles.settingItem}>
+              <TouchableOpacity 
+                style={styles.settingItem}
+                onPress={() => {
+                  setShowSettingsModal(false);
+                  setTimeout(() => setShowPrivacyModal(true), 300);
+                }}
+              >
                 <Text style={styles.settingText}>{t('Privacy Settings')}</Text>
                 <Text style={styles.settingArrow}>›</Text>
               </TouchableOpacity>
@@ -298,12 +416,14 @@ export default function ProfileScreen() {
 
             <View style={styles.settingsSection}>
               <Text style={styles.sectionTitle}>{t('Notifications')}</Text>
-              <TouchableOpacity style={styles.settingItem}>
-                <Text style={styles.settingText}>{t('Low Stock Alerts')}</Text>
-                <Text style={styles.settingArrow}>›</Text>
-              </TouchableOpacity>
-              <TouchableOpacity style={styles.settingItem}>
-                <Text style={styles.settingText}>{t('Sales Notifications')}</Text>
+              <TouchableOpacity 
+                style={styles.settingItem}
+                onPress={() => {
+                  setShowSettingsModal(false);
+                  setTimeout(() => setShowNotificationModal(true), 300);
+                }}
+              >
+                <Text style={styles.settingText}>{t('Notification Settings')}</Text>
                 <Text style={styles.settingArrow}>›</Text>
               </TouchableOpacity>
             </View>
@@ -314,7 +434,13 @@ export default function ProfileScreen() {
                 <Text style={styles.settingText}>{t('Version')}</Text>
                 <Text style={styles.settingValue}>1.0.0</Text>
               </TouchableOpacity>
-              <TouchableOpacity style={styles.settingItem}>
+              <TouchableOpacity 
+                style={styles.settingItem}
+                onPress={() => {
+                  setShowSettingsModal(false);
+                  setTimeout(() => setShowTermsModal(true), 300);
+                }}
+              >
                 <Text style={styles.settingText}>{t('Terms & Conditions')}</Text>
                 <Text style={styles.settingArrow}>›</Text>
               </TouchableOpacity>
@@ -405,6 +531,237 @@ export default function ProfileScreen() {
           </View>
         </SafeAreaView>
       </Modal>
+
+      {/* Change Password Modal */}
+      <Modal visible={showChangePasswordModal} animationType="slide">
+        <SafeAreaView style={styles.modalContainer}>
+          <View style={styles.modalHeader}>
+            <Text style={styles.modalTitle}>{t('Change Password')}</Text>
+            <TouchableOpacity onPress={() => setShowChangePasswordModal(false)}>
+              <Text style={styles.closeButton}>✕</Text>
+            </TouchableOpacity>
+          </View>
+
+          <ScrollView style={styles.modalContent}>
+            <Text style={styles.label}>{t('Current Password')} *</Text>
+            <TextInput
+              style={styles.input}
+              value={passwordForm.currentPassword}
+              onChangeText={(text) => setPasswordForm({ ...passwordForm, currentPassword: text })}
+              placeholder={t('Enter current password')}
+              secureTextEntry
+            />
+
+            <Text style={styles.label}>{t('New Password')} *</Text>
+            <TextInput
+              style={styles.input}
+              value={passwordForm.newPassword}
+              onChangeText={(text) => setPasswordForm({ ...passwordForm, newPassword: text })}
+              placeholder={t('Enter new password')}
+              secureTextEntry
+            />
+
+            <Text style={styles.label}>{t('Confirm New Password')} *</Text>
+            <TextInput
+              style={styles.input}
+              value={passwordForm.confirmPassword}
+              onChangeText={(text) => setPasswordForm({ ...passwordForm, confirmPassword: text })}
+              placeholder={t('Confirm new password')}
+              secureTextEntry
+            />
+          </ScrollView>
+
+          <View style={styles.modalActions}>
+            <TouchableOpacity
+              style={[styles.modalButton, styles.cancelButton]}
+              onPress={() => setShowChangePasswordModal(false)}
+            >
+              <Text style={styles.cancelButtonText}>{t('Cancel')}</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.modalButton, styles.saveButton]}
+              onPress={handleChangePassword}
+              disabled={isSubmitting}
+            >
+              {isSubmitting ? (
+                <ActivityIndicator color="white" />
+              ) : (
+                <Text style={styles.saveButtonText}>{t('Change Password')}</Text>
+              )}
+            </TouchableOpacity>
+          </View>
+        </SafeAreaView>
+      </Modal>
+
+      {/* Privacy Settings Modal */}
+      <Modal visible={showPrivacyModal} animationType="slide">
+        <SafeAreaView style={styles.modalContainer}>
+          <View style={styles.modalHeader}>
+            <Text style={styles.modalTitle}>{t('Privacy Settings')}</Text>
+            <TouchableOpacity onPress={() => setShowPrivacyModal(false)}>
+              <Text style={styles.closeButton}>✕</Text>
+            </TouchableOpacity>
+          </View>
+
+          <ScrollView style={styles.modalContent}>
+            <View style={styles.settingsSection}>
+              <View style={styles.toggleItem}>
+                <View style={styles.toggleInfo}>
+                  <Text style={styles.settingText}>{t('Show Account Activity')}</Text>
+                </View>
+                <Switch
+                  value={privacySettings.showActivity}
+                  onValueChange={(value) => setPrivacySettings({ ...privacySettings, showActivity: value })}
+                  trackColor={{ false: '#ddd', true: '#4CAF50' }}
+                  thumbColor={privacySettings.showActivity ? '#fff' : '#f4f3f4'}
+                />
+              </View>
+
+              <View style={styles.toggleItem}>
+                <View style={styles.toggleInfo}>
+                  <Text style={styles.settingText}>{t('Data Collection')}</Text>
+                </View>
+                <Switch
+                  value={privacySettings.dataCollection}
+                  onValueChange={(value) => setPrivacySettings({ ...privacySettings, dataCollection: value })}
+                  trackColor={{ false: '#ddd', true: '#4CAF50' }}
+                  thumbColor={privacySettings.dataCollection ? '#fff' : '#f4f3f4'}
+                />
+              </View>
+
+              <View style={styles.toggleItem}>
+                <View style={styles.toggleInfo}>
+                  <Text style={styles.settingText}>{t('Share Usage Data')}</Text>
+                </View>
+                <Switch
+                  value={privacySettings.shareUsageData}
+                  onValueChange={(value) => setPrivacySettings({ ...privacySettings, shareUsageData: value })}
+                  trackColor={{ false: '#ddd', true: '#4CAF50' }}
+                  thumbColor={privacySettings.shareUsageData ? '#fff' : '#f4f3f4'}
+                />
+              </View>
+            </View>
+          </ScrollView>
+
+          <View style={styles.modalActions}>
+            <TouchableOpacity
+              style={[styles.modalButton, styles.saveButton, { flex: 1 }]}
+              onPress={() => setShowPrivacyModal(false)}
+            >
+              <Text style={styles.saveButtonText}>{t('Done')}</Text>
+            </TouchableOpacity>
+          </View>
+        </SafeAreaView>
+      </Modal>
+
+      {/* Notification Settings Modal */}
+      <Modal visible={showNotificationModal} animationType="slide">
+        <SafeAreaView style={styles.modalContainer}>
+          <View style={styles.modalHeader}>
+            <Text style={styles.modalTitle}>{t('Notification Settings')}</Text>
+            <TouchableOpacity onPress={() => setShowNotificationModal(false)}>
+              <Text style={styles.closeButton}>✕</Text>
+            </TouchableOpacity>
+          </View>
+
+          <ScrollView style={styles.modalContent}>
+            <View style={styles.settingsSection}>
+              <View style={styles.toggleItem}>
+                <View style={styles.toggleInfo}>
+                  <Text style={styles.settingText}>{t('Enable Low Stock Alerts')}</Text>
+                  <Text style={styles.settingDescription}>{t('Get notified when items are running low')}</Text>
+                </View>
+                <Switch
+                  value={notificationSettings.lowStockAlerts}
+                  onValueChange={(value) => handleNotificationToggle('lowStockAlerts', value)}
+                  trackColor={{ false: '#ddd', true: '#4CAF50' }}
+                  thumbColor={notificationSettings.lowStockAlerts ? '#fff' : '#f4f3f4'}
+                />
+              </View>
+
+              <View style={styles.toggleItem}>
+                <View style={styles.toggleInfo}>
+                  <Text style={styles.settingText}>{t('Enable Sales Notifications')}</Text>
+                  <Text style={styles.settingDescription}>{t('Get notified about daily sales')}</Text>
+                </View>
+                <Switch
+                  value={notificationSettings.salesNotifications}
+                  onValueChange={(value) => handleNotificationToggle('salesNotifications', value)}
+                  trackColor={{ false: '#ddd', true: '#4CAF50' }}
+                  thumbColor={notificationSettings.salesNotifications ? '#fff' : '#f4f3f4'}
+                />
+              </View>
+            </View>
+          </ScrollView>
+
+          <View style={styles.modalActions}>
+            <TouchableOpacity
+              style={[styles.modalButton, styles.saveButton, { flex: 1 }]}
+              onPress={() => setShowNotificationModal(false)}
+            >
+              <Text style={styles.saveButtonText}>{t('Done')}</Text>
+            </TouchableOpacity>
+          </View>
+        </SafeAreaView>
+      </Modal>
+
+      {/* Terms & Conditions Modal */}
+      <Modal visible={showTermsModal} animationType="slide">
+        <SafeAreaView style={styles.modalContainer}>
+          <View style={styles.modalHeader}>
+            <Text style={styles.modalTitle}>{t('Terms & Conditions')}</Text>
+            <TouchableOpacity onPress={() => setShowTermsModal(false)}>
+              <Text style={styles.closeButton}>✕</Text>
+            </TouchableOpacity>
+          </View>
+
+          <ScrollView style={styles.modalContent}>
+            <View style={styles.termsContainer}>
+              <Text style={styles.termsTitle}>{t('About Hein Pharmacy')}</Text>
+              <Text style={styles.termsText}>
+                {t('A comprehensive pharmacy management system')}
+              </Text>
+
+              <Text style={styles.termsTitle}>Terms of Service</Text>
+              <Text style={styles.termsText}>
+                This pharmacy management system is provided for authorized users only. 
+                By using this application, you agree to maintain the confidentiality of all 
+                patient and business information accessed through the system.
+              </Text>
+
+              <Text style={styles.termsTitle}>Privacy Policy</Text>
+              <Text style={styles.termsText}>
+                We are committed to protecting your privacy and the privacy of your customers. 
+                All data is stored securely and will not be shared with third parties without 
+                explicit consent.
+              </Text>
+
+              <Text style={styles.termsTitle}>Data Security</Text>
+              <Text style={styles.termsText}>
+                All sensitive information is encrypted and stored securely. Users are responsible 
+                for maintaining the security of their login credentials.
+              </Text>
+
+              <Text style={styles.termsTitle}>{t('Contact Us')}</Text>
+              <Text style={styles.termsText}>
+                For support or inquiries, please contact our support team.
+              </Text>
+
+              <Text style={styles.termsVersion}>Version 1.0.0</Text>
+              <Text style={styles.termsDate}>Last Updated: October 8, 2025</Text>
+            </View>
+          </ScrollView>
+
+          <View style={styles.modalActions}>
+            <TouchableOpacity
+              style={[styles.modalButton, styles.saveButton, { flex: 1 }]}
+              onPress={() => setShowTermsModal(false)}
+            >
+              <Text style={styles.saveButtonText}>{t('Close')}</Text>
+            </TouchableOpacity>
+          </View>
+        </SafeAreaView>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -418,7 +775,9 @@ const styles = StyleSheet.create({
     flex: 1,
     padding: 20,
     paddingTop: 20,
-    paddingBottom: 80, // Account for tab bar
+  },
+  scrollView: {
+    paddingBottom: 100, // Extra padding for tab bar
   },
   title: {
     fontSize: 28,
@@ -667,5 +1026,53 @@ const styles = StyleSheet.create({
   languageButtonTextActive: {
     color: 'white',
     fontWeight: '600',
+  },
+  toggleItem: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    backgroundColor: 'white',
+    padding: 18,
+    borderRadius: 8,
+    marginBottom: 10,
+  },
+  toggleInfo: {
+    flex: 1,
+    marginRight: 15,
+  },
+  settingDescription: {
+    fontSize: 13,
+    color: '#888',
+    marginTop: 4,
+  },
+  termsContainer: {
+    backgroundColor: 'white',
+    padding: 20,
+    borderRadius: 8,
+  },
+  termsTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#333',
+    marginTop: 20,
+    marginBottom: 10,
+  },
+  termsText: {
+    fontSize: 14,
+    color: '#666',
+    lineHeight: 22,
+    marginBottom: 15,
+  },
+  termsVersion: {
+    fontSize: 12,
+    color: '#999',
+    marginTop: 30,
+    textAlign: 'center',
+  },
+  termsDate: {
+    fontSize: 12,
+    color: '#999',
+    textAlign: 'center',
+    marginTop: 5,
   },
 });

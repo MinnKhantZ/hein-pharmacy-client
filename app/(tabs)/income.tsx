@@ -1,19 +1,19 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
-  View,
-  Text,
-  StyleSheet,
-  ScrollView,
-  TouchableOpacity,
   ActivityIndicator,
   Dimensions,
   RefreshControl,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from 'react-native';
+import { BarChart, LineChart, PieChart } from 'react-native-chart-kit';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { LineChart, BarChart, PieChart } from 'react-native-chart-kit';
 import { incomeAPI } from '../../services/api';
 import { formatPrice, getCurrencySymbol } from '../../utils/priceFormatter';
-import { useTranslation } from 'react-i18next';
 
 const screenWidth = Dimensions.get('window').width;
 
@@ -33,7 +33,7 @@ export default function IncomeScreen() {
   const { t } = useTranslation();
   const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
-  const [period, setPeriod] = useState<Period>('monthly');
+  const [period, setPeriod] = useState<Period>('daily');
   const [summaries, setSummaries] = useState<IncomeSummary[]>([]);
   const [selectedOwner, setSelectedOwner] = useState<string | null>(null);
 
@@ -61,25 +61,127 @@ export default function IncomeScreen() {
   // Get unique owners
   const owners = Array.from(new Set(summaries.map(s => s.owner_name)));
 
-  // Filter summaries by selected owner
-  const filteredSummaries = selectedOwner
-    ? summaries.filter(s => s.owner_name === selectedOwner)
-    : summaries;
+  // Aggregate data by period (for monthly/yearly views)
+  const aggregateDataByPeriod = (data: IncomeSummary[]) => {
+    const grouped: { [key: string]: { [owner: string]: number } } = {};
+    
+    data.forEach(item => {
+      const date = new Date(item.period);
+      let periodKey: string;
+      
+      if (period === 'daily') {
+        periodKey = item.period; // Keep daily as is
+      } else if (period === 'monthly') {
+        // Group by month-year
+        periodKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-01`;
+      } else {
+        // Group by year
+        periodKey = `${date.getFullYear()}-01-01`;
+      }
+      
+      if (!grouped[periodKey]) {
+        grouped[periodKey] = {};
+      }
+      if (!grouped[periodKey][item.owner_name]) {
+        grouped[periodKey][item.owner_name] = 0;
+      }
+      grouped[periodKey][item.owner_name] += Number(item.total_income);
+    });
+    
+    return grouped;
+  };
 
-  // Calculate total income by owner
+  const aggregatedData = aggregateDataByPeriod(summaries);
+
+  // Get current period key for filtering
+  const getCurrentPeriodKey = () => {
+    const today = new Date();
+    if (period === 'daily') {
+      return today.toISOString().split('T')[0]; // YYYY-MM-DD
+    } else if (period === 'monthly') {
+      return `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-01`;
+    } else {
+      return `${today.getFullYear()}-01-01`;
+    }
+  };
+
+  const currentPeriodKey = getCurrentPeriodKey();
+
+  // Calculate total income by owner for CURRENT PERIOD ONLY (for cards and charts)
+  const incomeByOwnerCurrentPeriod = owners.map(owner => {
+    const income = aggregatedData[currentPeriodKey]?.[owner] || 0;
+    return { name: owner, income };
+  });
+
+  // Calculate total income by owner for ALL PERIODS (for detailed summary and trends)
   const incomeByOwner = owners.map(owner => {
-    const ownerSummaries = summaries.filter(s => s.owner_name === owner);
-    const totalIncome = ownerSummaries.reduce((sum, s) => sum + Number(s.total_income), 0);
+    let totalIncome = 0;
+    Object.keys(aggregatedData).forEach(period => {
+      totalIncome += aggregatedData[period][owner] || 0;
+    });
     return { name: owner, income: totalIncome };
   });
+
+  // Create aggregated summaries for detailed view
+  const aggregatedSummariesArray: {
+    periodKey: string;
+    owner_name: string;
+    total_income: number;
+    total_sales: number;
+    item_count: number;
+  }[] = [];
+
+  Object.keys(aggregatedData).forEach(periodKey => {
+    owners.forEach(owner => {
+      if (aggregatedData[periodKey][owner]) {
+        // Sum up sales and items for this period and owner
+        const periodSummaries = summaries.filter(s => {
+          const date = new Date(s.period);
+          let summaryPeriodKey: string;
+          
+          if (period === 'daily') {
+            summaryPeriodKey = s.period;
+          } else if (period === 'monthly') {
+            summaryPeriodKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-01`;
+          } else {
+            summaryPeriodKey = `${date.getFullYear()}-01-01`;
+          }
+          
+          return summaryPeriodKey === periodKey && s.owner_name === owner;
+        });
+
+        const totalSales = periodSummaries.reduce((sum, s) => sum + Number(s.total_sales), 0);
+        const itemCount = periodSummaries.reduce((sum, s) => sum + Number(s.item_count), 0);
+
+        aggregatedSummariesArray.push({
+          periodKey,
+          owner_name: owner,
+          total_income: aggregatedData[periodKey][owner],
+          total_sales: totalSales,
+          item_count: itemCount,
+        });
+      }
+    });
+  });
+
+  // Sort by period descending
+  aggregatedSummariesArray.sort((a, b) => 
+    new Date(b.periodKey).getTime() - new Date(a.periodKey).getTime()
+  );
 
   // Prepare line chart data (income over time)
   const prepareLineChartData = () => {
     if (selectedOwner) {
       // Single owner selected: show one line
+      const ownerData = aggregatedSummariesArray.filter(s => s.owner_name === selectedOwner);
+      const periods = ownerData
+        .map(s => s.periodKey)
+        .sort((a, b) => new Date(b).getTime() - new Date(a).getTime())
+        .slice(0, 6);
+      
       return {
-        labels: filteredSummaries.slice(0, 6).map(s => {
-          const date = new Date(s.period);
+        labels: periods.map(p => {
+          const date = new Date(p);
           return period === 'daily'
             ? `${date.getMonth() + 1}/${date.getDate()}`
             : period === 'monthly'
@@ -88,7 +190,10 @@ export default function IncomeScreen() {
         }),
         datasets: [
           {
-            data: filteredSummaries.slice(0, 6).map(s => Number(s.total_income)),
+            data: periods.map(p => {
+              const item = ownerData.find(s => s.periodKey === p);
+              return item ? item.total_income : 0;
+            }),
             strokeWidth: 2,
             color: () => '#2196F3', // Blue
           },
@@ -97,17 +202,15 @@ export default function IncomeScreen() {
     } else {
       // All owners: show multiple lines
       // Get all unique periods, sort descending, take first 6
-      const allPeriods = Array.from(new Set(summaries.map(s => s.period)))
+      const allPeriods = Object.keys(aggregatedData)
         .sort((a, b) => new Date(b).getTime() - new Date(a).getTime())
         .slice(0, 6);
 
       const colors = ['#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', '#9966FF', '#FF9F40'];
 
       const datasets = owners.map((owner, index) => {
-        const ownerSummaries = summaries.filter(s => s.owner_name === owner);
         const data = allPeriods.map(period => {
-          const summary = ownerSummaries.find(s => s.period === period);
-          return summary ? Number(summary.total_income) : 0;
+          return aggregatedData[period][owner] || 0;
         });
         return {
           data,
@@ -131,23 +234,29 @@ export default function IncomeScreen() {
 
   const lineChartData = prepareLineChartData();
 
-  // Prepare bar chart data (income by owner)
+  // Prepare bar chart data (income by owner - CURRENT PERIOD ONLY)
+  // Truncate long names for bar chart labels
+  const truncateName = (name: string, maxLength: number = 10) => {
+    if (name.length <= maxLength) return name;
+    return name.substring(0, maxLength - 2) + '..';
+  };
+  
   const barChartData = {
-    labels: incomeByOwner.slice(0, 5).map(o => o.name.split(' ')[0]),
+    labels: incomeByOwnerCurrentPeriod.slice(0, 5).map(o => truncateName(o.name)),
     datasets: [
       {
-        data: incomeByOwner.slice(0, 5).map(o => o.income),
+        data: incomeByOwnerCurrentPeriod.slice(0, 5).map(o => o.income),
       },
     ],
   };
 
-  // Prepare pie chart data
-  const pieChartData = incomeByOwner.map((item, index) => ({
-    name: item.name,
+  // Prepare pie chart data (CURRENT PERIOD ONLY)
+  const pieChartData = incomeByOwnerCurrentPeriod.map((item, index) => ({
+    name: truncateName(item.name, 12),
     income: item.income,
     color: ['#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', '#9966FF', '#FF9F40'][index % 6],
     legendFontColor: '#333',
-    legendFontSize: 14,
+    legendFontSize: 12,
   }));
 
   const chartConfig = {
@@ -167,8 +276,10 @@ export default function IncomeScreen() {
     },
   };
 
-  const totalIncome = summaries.reduce((sum, s) => sum + Number(s.total_income), 0);
-  const totalSales = summaries.reduce((sum, s) => sum + Number(s.total_sales), 0);
+  // Calculate totals for CURRENT PERIOD ONLY
+  const currentPeriodSummaries = aggregatedSummariesArray.filter(s => s.periodKey === currentPeriodKey);
+  const totalIncome = currentPeriodSummaries.reduce((sum, s) => sum + Number(s.total_income), 0);
+  const totalSales = currentPeriodSummaries.reduce((sum, s) => sum + Number(s.total_sales), 0);
 
   return (
     <SafeAreaView style={styles.container}>
@@ -178,6 +289,7 @@ export default function IncomeScreen() {
 
       <ScrollView
         style={styles.content}
+        contentContainerStyle={styles.scrollView}
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
         }
@@ -264,7 +376,7 @@ export default function IncomeScreen() {
             </View>
 
             {/* Income Trend Chart */}
-            {filteredSummaries.length > 0 && (
+            {aggregatedSummariesArray.length > 0 && (
               <View style={styles.section}>
                 <Text style={styles.sectionTitle}>{t('Income Trend')}</Text>
                 <ScrollView horizontal showsHorizontalScrollIndicator={false}>
@@ -343,35 +455,50 @@ export default function IncomeScreen() {
             {/* Detailed List */}
             <View style={styles.section}>
               <Text style={styles.sectionTitle}>{t('Detailed Summary')}</Text>
-              {filteredSummaries.map((summary) => (
-                <View key={summary.id} style={styles.summaryItem}>
-                  <View style={styles.summaryItemHeader}>
-                    <Text style={styles.summaryItemOwner}>{summary.owner_name}</Text>
-                    <Text style={styles.summaryItemPeriod}>
-                      {new Date(summary.period).toLocaleDateString()}
-                    </Text>
-                  </View>
-                  <View style={styles.summaryItemDetails}>
-                    <View style={styles.summaryItemDetail}>
-                      <Text style={styles.detailLabel}>{t('Sales:')}</Text>
-                      <Text style={styles.detailValue}>
-                        {formatPrice(Number(summary.total_sales))}
+              {(selectedOwner 
+                ? aggregatedSummariesArray.filter(s => s.owner_name === selectedOwner)
+                : aggregatedSummariesArray
+              ).map((summary, index) => {
+                const date = new Date(summary.periodKey);
+                let displayDate = '';
+                if (period === 'daily') {
+                  displayDate = date.toLocaleDateString();
+                } else if (period === 'monthly') {
+                  displayDate = date.toLocaleDateString(undefined, { month: 'long', year: 'numeric' });
+                } else {
+                  displayDate = date.getFullYear().toString();
+                }
+                
+                return (
+                  <View key={`${summary.periodKey}-${summary.owner_name}-${index}`} style={styles.summaryItem}>
+                    <View style={styles.summaryItemHeader}>
+                      <Text style={styles.summaryItemOwner}>{summary.owner_name}</Text>
+                      <Text style={styles.summaryItemPeriod}>
+                        {displayDate}
                       </Text>
                     </View>
-                    <View style={styles.summaryItemDetail}>
-                      <Text style={styles.detailLabel}>{t('Income:')}</Text>
-                      <Text style={[styles.detailValue, styles.incomeValue]}>
-                        {formatPrice(Number(summary.total_income))}
-                      </Text>
-                    </View>
-                    <View style={styles.summaryItemDetail}>
-                      <Text style={styles.detailLabel}>Items:</Text>
-                      <Text style={styles.detailValue}>{summary.item_count}</Text>
+                    <View style={styles.summaryItemDetails}>
+                      <View style={styles.summaryItemDetail}>
+                        <Text style={styles.detailLabel}>{t('Sales:')}</Text>
+                        <Text style={styles.detailValue}>
+                          {formatPrice(Number(summary.total_sales))}
+                        </Text>
+                      </View>
+                      <View style={styles.summaryItemDetail}>
+                        <Text style={styles.detailLabel}>{t('Income:')}</Text>
+                        <Text style={[styles.detailValue, styles.incomeValue]}>
+                          {formatPrice(Number(summary.total_income))}
+                        </Text>
+                      </View>
+                      <View style={styles.summaryItemDetail}>
+                        <Text style={styles.detailLabel}>Items:</Text>
+                        <Text style={styles.detailValue}>{summary.item_count}</Text>
+                      </View>
                     </View>
                   </View>
-                </View>
-              ))}
-              {filteredSummaries.length === 0 && (
+                );
+              })}
+              {aggregatedSummariesArray.length === 0 && (
                 <Text style={styles.emptyText}>{t('No income data available')}</Text>
               )}
             </View>
@@ -389,16 +516,19 @@ const styles = StyleSheet.create({
   },
   header: {
     padding: 20,
-    paddingTop: 20,
+    paddingTop: 10,
     backgroundColor: 'white',
   },
   title: {
-    fontSize: 28,
+    fontSize: 24,
     fontWeight: 'bold',
     color: '#333',
   },
   content: {
-    flex: 1,
+    padding: 20,
+  },
+  scrollView: {
+    paddingBottom: 100, // Extra padding for tab bar
   },
   periodFilters: {
     flexDirection: 'row',

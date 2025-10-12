@@ -1,6 +1,7 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
 import * as SecureStore from 'expo-secure-store';
+import React, { createContext, useContext, useEffect, useState } from 'react';
 import { authAPI } from '../services/api';
+import notificationService from '../services/notificationService';
 
 export const AuthContext = createContext({
   user: null,
@@ -61,6 +62,25 @@ export const AuthProvider = ({ children }) => {
       setToken(authToken);
       setUser(owner);
 
+      // Register device for push notifications after successful login
+      try {
+        const pushToken = await notificationService.getStoredPushToken();
+        console.log('Checking for stored push token after login:', pushToken ? 'Found' : 'Not found');
+        
+        if (pushToken) {
+          console.log('Registering device with server...');
+          const registered = await notificationService.registerDeviceWithServer(pushToken);
+          if (registered) {
+            console.log('✅ Device registered successfully after login');
+          }
+        } else {
+          console.log('⚠️ No push token available yet. Will register when notification permission is granted.');
+        }
+      } catch (notifError) {
+        console.error('❌ Error registering device after login:', notifError);
+        // Don't fail login if device registration fails
+      }
+
       return { success: true };
     } catch (error) {
       console.log('Login error:', error);
@@ -96,6 +116,16 @@ export const AuthProvider = ({ children }) => {
 
   const logout = async () => {
     try {
+      // Unregister device before logout
+      try {
+        const pushToken = await notificationService.getStoredPushToken();
+        if (pushToken) {
+          await notificationService.unregisterDeviceFromServer(pushToken);
+        }
+      } catch (notifError) {
+        console.error('Error unregistering device:', notifError);
+      }
+
       await Promise.all([
         SecureStore.deleteItemAsync('authToken'),
         SecureStore.deleteItemAsync('user'),

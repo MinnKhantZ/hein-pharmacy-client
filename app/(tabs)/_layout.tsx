@@ -18,6 +18,9 @@ export default function TabLayout() {
     return <Redirect href="/(auth)/login" />;
   }
 
+  // Calculate tab bar height including safe area
+  const tabBarHeight = 60 + insets.bottom;
+
   return (
     <Tabs
       screenOptions={{
@@ -29,8 +32,8 @@ export default function TabLayout() {
           backgroundColor: '#fff',
           borderTopWidth: 1,
           borderTopColor: '#e0e0e0',
-          height: 60,
-          paddingBottom: 8,
+          height: tabBarHeight,
+          paddingBottom: insets.bottom > 0 ? insets.bottom : 8,
           paddingTop: 8,
           position: 'absolute',
           bottom: 0,
@@ -41,8 +44,7 @@ export default function TabLayout() {
           fontSize: 11,
           fontWeight: '600',
         },
-      }}
-      safeAreaInsets={{ bottom: insets.bottom }}>
+      }}>
       <Tabs.Screen
         name="dashboard"
         options={{

@@ -1,18 +1,20 @@
 import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
-  ActivityIndicator,
-  Alert,
-  Modal,
-  RefreshControl,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View,
+    ActivityIndicator,
+    Alert,
+    FlatList,
+    Modal,
+    RefreshControl,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TextInput,
+    TouchableOpacity,
+    View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useNotifications } from '../../contexts/NotificationContext';
 import { inventoryAPI, salesAPI } from '../../services/api';
 import { formatPrice } from '../../utils/priceFormatter';
 
@@ -56,6 +58,7 @@ interface SaleRecord {
 
 export default function SalesScreen() {
   const { t } = useTranslation();
+  const { expoPushToken } = useNotifications();
   const [showSaleModal, setShowSaleModal] = useState(false);
   const [inventoryItems, setInventoryItems] = useState<InventoryItem[]>([]);
   const [saleItems, setSaleItems] = useState<SaleItem[]>([]);
@@ -70,46 +73,118 @@ export default function SalesScreen() {
   const [salesHistory, setSalesHistory] = useState<SaleRecord[]>([]);
   const [refreshing, setRefreshing] = useState(false);
   const [loadingHistory, setLoadingHistory] = useState(true);
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const LIMIT = 20;
+  
+  // Search, filter, and sort states
+  const [salesSearch, setSalesSearch] = useState('');
+  const [paymentFilter, setPaymentFilter] = useState('all');
+  const [sortBy, setSortBy] = useState('sale_date');
+  const [sortOrder, setSortOrder] = useState<'ASC' | 'DESC'>('DESC');
+  const [showFilters, setShowFilters] = useState(false);
 
-  useEffect(() => {
-    fetchSalesHistory();
-  }, []);
-
-  useEffect(() => {
-    if (showSaleModal) {
-      fetchInventory();
-    }
-  }, [showSaleModal]);
-
-  const fetchInventory = async () => {
+  const fetchInventory = React.useCallback(async (search: string = '') => {
     try {
       setLoading(true);
-      const response = await inventoryAPI.getItems({});
+      const params: any = {};
+      
+      if (search.trim()) {
+        params.search = search.trim();
+      }
+      
+      const response = await inventoryAPI.getItems(params);
       setInventoryItems(response.data.items || []);
       setLoading(false);
     } catch {
       Alert.alert('Error', t('Failed to fetch inventory items'));
       setLoading(false);
     }
-  };
+  }, [t]);
 
-  const fetchSalesHistory = async () => {
+  useEffect(() => {
+    fetchSalesHistory(1, false);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Debounced search and filter/sort effect
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      fetchSalesHistory(1, false);
+    }, 500); // Debounce for 500ms
+
+    return () => clearTimeout(timeoutId);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [salesSearch, paymentFilter, sortBy, sortOrder]);
+
+  useEffect(() => {
+    if (showSaleModal && searchQuery.trim()) {
+      const timeoutId = setTimeout(() => {
+        fetchInventory(searchQuery);
+      }, 500); // Debounce for 500ms
+
+      return () => clearTimeout(timeoutId);
+    } else if (showSaleModal && !searchQuery.trim()) {
+      setInventoryItems([]);
+    }
+  }, [searchQuery, showSaleModal, fetchInventory]);
+
+  const fetchSalesHistory = React.useCallback(async (pageNum: number = 1, append: boolean = false) => {
     try {
-      setLoadingHistory(true);
-      const response = await salesAPI.getSales({ limit: 50 });
-      setSalesHistory(response.data.sales || []);
+      if (append) {
+        setLoadingMore(true);
+      } else {
+        setLoadingHistory(true);
+      }
+      
+      const params: any = { 
+        page: pageNum, 
+        limit: LIMIT,
+        sortBy: sortBy,
+        sortOrder: sortOrder
+      };
+      
+      if (salesSearch.trim()) {
+        params.search = salesSearch.trim();
+      }
+      
+      if (paymentFilter !== 'all') {
+        params.payment_method = paymentFilter;
+      }
+      
+      const response = await salesAPI.getSales(params);
+      
+      const newSales = response.data.sales || [];
+      
+      if (append) {
+        setSalesHistory(prev => [...prev, ...newSales]);
+      } else {
+        setSalesHistory(newSales);
+      }
+      
+      setPage(pageNum);
+      setTotalPages(response.data.pagination?.pages || 1);
       setLoadingHistory(false);
       setRefreshing(false);
+      setLoadingMore(false);
     } catch (error) {
       console.error('Error fetching sales:', error);
       setLoadingHistory(false);
       setRefreshing(false);
+      setLoadingMore(false);
     }
-  };
+  }, [LIMIT, sortBy, sortOrder, salesSearch, paymentFilter]);
 
   const handleRefresh = () => {
     setRefreshing(true);
-    fetchSalesHistory();
+    setPage(1);
+    fetchSalesHistory(1, false);
+  };
+
+  const handleLoadMoreSales = () => {
+    if (loadingMore || page >= totalPages) return;
+    fetchSalesHistory(page + 1, true);
   };
 
   const addItemToSale = (item: InventoryItem) => {
@@ -183,6 +258,7 @@ export default function SalesScreen() {
         customer_phone: customerPhone.trim() || undefined,
         payment_method: paymentMethod,
         notes: notes.trim() || undefined,
+        device_push_token: expoPushToken || undefined, // Include device push token to exclude from notifications
       };
 
       await salesAPI.createSale(payload);
@@ -199,7 +275,8 @@ export default function SalesScreen() {
             setSearchQuery('');
             setShowSaleModal(false);
             // Refresh sales history
-            fetchSalesHistory();
+            setPage(1);
+            fetchSalesHistory(1, false);
           }
         }
       ]);
@@ -207,11 +284,6 @@ export default function SalesScreen() {
       Alert.alert('Error', error.response?.data?.error || t('Failed to record sale'));
     }
   };
-
-  const filteredInventory = inventoryItems.filter(item =>
-    item.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    item.category?.toLowerCase().includes(searchQuery.toLowerCase())
-  );
 
   return (
     <SafeAreaView style={styles.container}>
@@ -225,58 +297,154 @@ export default function SalesScreen() {
         </TouchableOpacity>
       </View>
 
-      <ScrollView 
-        style={styles.content}
-        contentContainerStyle={styles.scrollView}
-        refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />
-        }
-      >
-        {loadingHistory ? (
-          <ActivityIndicator size="large" color="#2196F3" style={{ marginTop: 50 }} />
-        ) : salesHistory.length === 0 ? (
-          <View style={styles.emptyContainer}>
-            <Text style={styles.emptyText}>{t('No sales records yet')}</Text>
-            <Text style={styles.emptySubtext}>
-              {t('Record your first sale by clicking the "New Sale" button above')}
-            </Text>
+      {/* Search and Filter Section */}
+      <View style={styles.filterSection}>
+        <TextInput
+          style={styles.searchInput}
+          placeholder={t('Search by customer name, phone, or item...')}
+          value={salesSearch}
+          onChangeText={setSalesSearch}
+          autoCapitalize="none"
+        />
+        <TouchableOpacity
+          style={styles.filterToggleButton}
+          onPress={() => setShowFilters(!showFilters)}
+        >
+          <Text style={styles.filterToggleText}>
+            {showFilters ? '▲ ' + t('Hide Filters') : '▼ ' + t('Show Filters')}
+          </Text>
+        </TouchableOpacity>
+      </View>
+
+      {showFilters && (
+        <View style={styles.filtersContainer}>
+          {/* Payment Method Filter */}
+          <View style={styles.filterRow}>
+            <Text style={styles.filterLabel}>{t('Payment:')}</Text>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filterOptions}>
+              {['all', 'cash', 'mobile'].map((method) => (
+                <TouchableOpacity
+                  key={method}
+                  style={[
+                    styles.filterOption,
+                    paymentFilter === method && styles.filterOptionActive,
+                  ]}
+                  onPress={() => setPaymentFilter(method)}
+                >
+                  <Text
+                    style={[
+                      styles.filterOptionText,
+                      paymentFilter === method && styles.filterOptionTextActive,
+                    ]}
+                  >
+                    {method === 'all' ? t('All') : method === 'mobile' ? t('Mobile') : t('Cash')}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
           </View>
-        ) : (
-          <View style={styles.salesList}>
-            {salesHistory.map((sale) => (
-              <View key={sale.id} style={styles.saleCard}>
-                <View style={styles.saleHeader}>
-                  <Text style={styles.saleId}>{t('Sale #')}{sale.id}</Text>
-                  <Text style={styles.saleAmount}>{formatPrice(Number(sale.total_amount))}</Text>
-                </View>
-                <Text style={styles.saleDate}>
-                  {new Date(sale.sale_date).toLocaleString()}
+
+          {/* Sort Options */}
+          <View style={styles.filterRow}>
+            <Text style={styles.filterLabel}>{t('Sort by:')}</Text>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filterOptions}>
+              {[
+                { value: 'sale_date', label: t('Date') },
+                { value: 'total_amount', label: t('Amount') },
+                { value: 'customer_name', label: t('Customer') },
+              ].map((option) => (
+                <TouchableOpacity
+                  key={option.value}
+                  style={[
+                    styles.filterOption,
+                    sortBy === option.value && styles.filterOptionActive,
+                  ]}
+                  onPress={() => setSortBy(option.value)}
+                >
+                  <Text
+                    style={[
+                      styles.filterOptionText,
+                      sortBy === option.value && styles.filterOptionTextActive,
+                    ]}
+                  >
+                    {option.label}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+              <TouchableOpacity
+                style={styles.sortOrderButton}
+                onPress={() => setSortOrder(sortOrder === 'ASC' ? 'DESC' : 'ASC')}
+              >
+                <Text style={styles.sortOrderText}>
+                  {sortOrder === 'ASC' ? '↑' : '↓'}
                 </Text>
-                {sale.customer_name && (
-                  <Text style={styles.saleCustomer}>{t('Customer:')} {sale.customer_name}</Text>
-                )}
-                <Text style={styles.salePayment}>
-                  {t('Payment:')} {sale.payment_method === 'mobile_wallet' ? t('Mobile Wallet') : t('Cash')}
-                </Text>
-                <View style={styles.saleItemsList}>
-                  <Text style={styles.itemsTitle}>{t('Items:')}</Text>
-                  {sale.items.map((item) => (
-                    <View key={item.id} style={styles.saleItemRow}>
-                      <Text style={styles.saleItemName}>
-                        {item.item_name} × {item.quantity}
-                      </Text>
-                      <Text style={styles.saleItemPrice}>{formatPrice(Number(item.total_price))}</Text>
-                    </View>
-                  ))}
-                </View>
-                {sale.notes && (
-                  <Text style={styles.saleNotes}>{t('Note:')} {sale.notes}</Text>
-                )}
+              </TouchableOpacity>
+            </ScrollView>
+          </View>
+        </View>
+      )}
+
+      {loadingHistory ? (
+        <ActivityIndicator size="large" color="#2196F3" style={{ marginTop: 50 }} />
+      ) : (
+        <FlatList
+          data={salesHistory}
+          renderItem={({ item: sale }) => (
+            <View style={styles.saleCard}>
+              <View style={styles.saleHeader}>
+                <Text style={styles.saleId}>{t('Sale #')}{sale.id}</Text>
+                <Text style={styles.saleAmount}>{formatPrice(Number(sale.total_amount))}</Text>
               </View>
-            ))}
-          </View>
-        )}
-      </ScrollView>
+              <Text style={styles.saleDate}>
+                {new Date(sale.sale_date).toLocaleString()}
+              </Text>
+              {sale.customer_name && (
+                <Text style={styles.saleCustomer}>{t('Customer:')} {sale.customer_name}</Text>
+              )}
+              {sale.customer_phone && (
+                <Text style={styles.saleCustomer}>{t('Phone:')} {sale.customer_phone}</Text>
+              )}
+              <Text style={styles.salePayment}>
+                {t('Payment:')} {sale.payment_method === 'mobile' || sale.payment_method === 'mobile_wallet' ? t('Mobile') : sale.payment_method === 'card' ? t('Card') : sale.payment_method === 'credit' ? t('Credit') : t('Cash')}
+              </Text>
+              <View style={styles.saleItemsList}>
+                <Text style={styles.itemsTitle}>{t('Items:')}</Text>
+                {sale.items.map((item) => (
+                  <View key={item.id} style={styles.saleItemRow}>
+                    <Text style={styles.saleItemName}>
+                      {item.item_name} × {item.quantity}
+                    </Text>
+                    <Text style={styles.saleItemPrice}>{formatPrice(Number(item.total_price))}</Text>
+                  </View>
+                ))}
+              </View>
+              {sale.notes && (
+                <Text style={styles.saleNotes}>{t('Note:')} {sale.notes}</Text>
+              )}
+            </View>
+          )}
+          keyExtractor={(item) => item.id.toString()}
+          ListEmptyComponent={
+            <View style={styles.emptyContainer}>
+              <Text style={styles.emptyText}>{t('No sales records yet')}</Text>
+              <Text style={styles.emptySubtext}>
+                {t('Record your first sale by clicking the "New Sale" button above')}
+              </Text>
+            </View>
+          }
+          refreshControl={
+            <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />
+          }
+          onEndReached={handleLoadMoreSales}
+          onEndReachedThreshold={0.5}
+          ListFooterComponent={
+            loadingMore ? (
+              <ActivityIndicator size="small" color="#2196F3" style={{ marginVertical: 20 }} />
+            ) : null
+          }
+          contentContainerStyle={styles.scrollView}
+        />
+      )}
 
       <Modal visible={showSaleModal} animationType="slide">
         <SafeAreaView style={styles.modalContainer}>
@@ -302,10 +470,10 @@ export default function SalesScreen() {
                 <ScrollView style={styles.inventoryList} nestedScrollEnabled>
                   {loading ? (
                     <ActivityIndicator size="large" color="#2196F3" style={{ marginTop: 20 }} />
-                  ) : filteredInventory.length === 0 ? (
+                  ) : inventoryItems.length === 0 ? (
                     <Text style={styles.emptyText}>{t('No items found')}</Text>
                   ) : (
-                    filteredInventory.map((item) => (
+                    inventoryItems.map((item) => (
                       <TouchableOpacity
                         key={item.id}
                         style={styles.inventoryItem}
@@ -402,7 +570,7 @@ export default function SalesScreen() {
                 keyboardType="phone-pad"
               />
               <View style={styles.paymentMethods}>
-                {['cash', 'mobile_wallet'].map((method) => (
+                {['cash', 'mobile'].map((method) => (
                   <TouchableOpacity
                     key={method}
                     style={[
@@ -417,7 +585,7 @@ export default function SalesScreen() {
                         paymentMethod === method && styles.paymentMethodTextActive,
                       ]}
                     >
-                      {method === 'mobile_wallet' ? t('Mobile Wallet') : t('Cash')}
+                      {method === 'mobile' ? t('Mobile') : t('Cash')}
                     </Text>
                   </TouchableOpacity>
                 ))}
@@ -848,5 +1016,75 @@ const styles = StyleSheet.create({
     color: 'white',
     fontWeight: '600',
     fontSize: 16,
+  },
+  filterSection: {
+    backgroundColor: 'white',
+    padding: 15,
+    borderBottomWidth: 1,
+    borderBottomColor: '#e0e0e0',
+  },
+  filterToggleButton: {
+    paddingVertical: 10,
+    alignItems: 'center',
+  },
+  filterToggleText: {
+    fontSize: 14,
+    color: '#2196F3',
+    fontWeight: '600',
+  },
+  filtersContainer: {
+    backgroundColor: 'white',
+    paddingHorizontal: 15,
+    paddingBottom: 15,
+    borderBottomWidth: 1,
+    borderBottomColor: '#e0e0e0',
+  },
+  filterRow: {
+    marginBottom: 10,
+  },
+  filterLabel: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#333',
+    marginBottom: 8,
+  },
+  filterOptions: {
+    flexDirection: 'row',
+  },
+  filterOption: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+    backgroundColor: '#f5f5f5',
+    marginRight: 8,
+    borderWidth: 1,
+    borderColor: '#e0e0e0',
+  },
+  filterOptionActive: {
+    backgroundColor: '#2196F3',
+    borderColor: '#2196F3',
+  },
+  filterOptionText: {
+    fontSize: 14,
+    color: '#666',
+  },
+  filterOptionTextActive: {
+    color: 'white',
+    fontWeight: '600',
+  },
+  sortOrderButton: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+    backgroundColor: '#2196F3',
+    marginRight: 8,
+    justifyContent: 'center',
+    alignItems: 'center',
+    minWidth: 40,
+  },
+  sortOrderText: {
+    fontSize: 18,
+    color: 'white',
+    fontWeight: 'bold',
   },
 });

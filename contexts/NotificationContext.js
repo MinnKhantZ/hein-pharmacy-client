@@ -10,6 +10,7 @@ export function NotificationProvider({ children }) {
   const [notificationSettings, setNotificationSettings] = useState({
     lowStockAlerts: true,
     salesNotifications: true,
+    lowStockAlertTime: '09:00', // Default 9:00 AM
   });
   const [permissionStatus, setPermissionStatus] = useState('undetermined');
 
@@ -55,7 +56,7 @@ export function NotificationProvider({ children }) {
           const authToken = await SecureStore.getItemAsync('authToken');
           if (authToken) {
             console.log('User is logged in, registering device with server...');
-            await notificationService.registerDeviceWithServer(token);
+            await notificationService.registerDeviceWithServer(token, null, authToken);
           } else {
             console.log('User not logged in yet. Device will be registered after login.');
           }

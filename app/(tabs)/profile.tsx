@@ -1,3 +1,4 @@
+import { router } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
@@ -28,7 +29,6 @@ export default function ProfileScreen() {
   const { t, i18n } = useTranslation();
   const [showEditModal, setShowEditModal] = useState(false);
   const [showSettingsModal, setShowSettingsModal] = useState(false);
-  const [showCreateOwnerModal, setShowCreateOwnerModal] = useState(false);
   const [showChangePasswordModal, setShowChangePasswordModal] = useState(false);
   const [showPrivacyModal, setShowPrivacyModal] = useState(false);
   const [showNotificationModal, setShowNotificationModal] = useState(false);
@@ -51,21 +51,25 @@ export default function ProfileScreen() {
   const [notificationSettings, setNotificationSettings] = useState({
     lowStockAlerts: true,
     salesNotifications: true,
+    lowStockAlertTime: '09:00',
   });
+  
+  // Temporary state for editing notification settings (only saved on "Done")
+  const [tempNotificationSettings, setTempNotificationSettings] = useState({
+    lowStockAlerts: true,
+    salesNotifications: true,
+    lowStockAlertTime: '09:00',
+  });
+  
+  const [showTimePicker, setShowTimePicker] = useState(false);
+  const [tempHour, setTempHour] = useState('09');
+  const [tempMinute, setTempMinute] = useState('00');
   
   const [editForm, setEditForm] = useState({
     full_name: '',
     email: '',
     phone: '',
     address: '',
-  });
-
-  const [newOwnerForm, setNewOwnerForm] = useState({
-    username: '',
-    password: '',
-    full_name: '',
-    email: '',
-    phone: '',
   });
 
   const [passwordForm, setPasswordForm] = useState({
@@ -78,18 +82,23 @@ export default function ProfileScreen() {
   useEffect(() => {
     if (savedNotificationSettings) {
       setNotificationSettings(savedNotificationSettings);
+      setTempNotificationSettings(savedNotificationSettings);
     }
   }, [savedNotificationSettings]);
 
-  // Handler to update notification settings
-  const handleNotificationToggle = async (key: string, value: boolean) => {
-    const newSettings = {
-      ...notificationSettings,
+  // Handler to toggle notification settings (only updates local state, not server)
+  const handleNotificationToggle = (key: string, value: boolean) => {
+    setTempNotificationSettings({
+      ...tempNotificationSettings,
       [key]: value,
-    };
-    
+    });
+  };
+
+  // Handler to save notification settings (called when "Done" is pressed)
+  const handleSaveNotificationSettings = async () => {
     // Check if we need to request permissions
-    if (value && permissionStatus !== 'granted') {
+    if ((tempNotificationSettings.lowStockAlerts || tempNotificationSettings.salesNotifications) && 
+        permissionStatus !== 'granted') {
       const granted = await requestPermissions();
       if (!granted) {
         Alert.alert(
@@ -100,13 +109,62 @@ export default function ProfileScreen() {
       }
     }
     
-    setNotificationSettings(newSettings);
-    await updateNotificationSettings(newSettings);
+    try {
+      setNotificationSettings(tempNotificationSettings);
+      await updateNotificationSettings(tempNotificationSettings);
+      setShowNotificationModal(false);
+      
+      Alert.alert(
+        t('Success'),
+        t('Notification settings updated successfully')
+      );
+    } catch {
+      Alert.alert(
+        t('Error'),
+        t('Failed to update notification settings')
+      );
+    }
+  };
+
+  // Handler to open notification settings modal
+  const openNotificationModal = () => {
+    setTempNotificationSettings(notificationSettings);
+    setShowNotificationModal(true);
+  };
+
+  // Handler to update low stock alert time
+  const handleTimeChange = async () => {
+    // Validate inputs
+    const hours = parseInt(tempHour) || 0;
+    const minutes = parseInt(tempMinute) || 0;
     
-    Alert.alert(
-      t('Success'),
-      t('Notification settings updated successfully')
-    );
+    if (hours < 0 || hours > 23) {
+      Alert.alert(t('Error'), t('Hour must be between 0 and 23'));
+      return;
+    }
+    
+    if (minutes < 0 || minutes > 59) {
+      Alert.alert(t('Error'), t('Minute must be between 0 and 59'));
+      return;
+    }
+    
+    const timeString = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
+    
+    // Update temp notification settings with new time
+    setTempNotificationSettings({
+      ...tempNotificationSettings,
+      lowStockAlertTime: timeString,
+    });
+    
+    setShowTimePicker(false);
+  };
+
+  const openTimePicker = () => {
+    const currentTime = tempNotificationSettings.lowStockAlertTime || '09:00';
+    const [hour, minute] = currentTime.split(':');
+    setTempHour(hour);
+    setTempMinute(minute);
+    setShowTimePicker(true);
   };
 
   const openEditModal = () => {
@@ -134,30 +192,7 @@ export default function ProfileScreen() {
     }
   };
 
-  const handleCreateOwner = async () => {
-    if (!newOwnerForm.username || !newOwnerForm.password || !newOwnerForm.full_name) {
-      Alert.alert(t('Error'), t('Username, password, and full name are required'));
-      return;
-    }
 
-    try {
-      setIsSubmitting(true);
-      await authAPI.createOwner(newOwnerForm);
-      Alert.alert(t('Success'), t('New owner account created successfully'));
-      setShowCreateOwnerModal(false);
-      setNewOwnerForm({
-        username: '',
-        password: '',
-        full_name: '',
-        email: '',
-        phone: '',
-      });
-    } catch (error: any) {
-      Alert.alert(t('Error'), error.response?.data?.error || t('Failed to create owner account'));
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
 
   const handleChangePassword = async () => {
     if (!passwordForm.currentPassword) {
@@ -246,14 +281,14 @@ export default function ProfileScreen() {
             <Text style={styles.actionArrow}>›</Text>
           </TouchableOpacity>
           
-          {/* Admin-only: Create New Owner */}
+          {/* Admin-only: Manage Owners */}
           {(user as any)?.username === 'admin' && (
             <TouchableOpacity 
               style={[styles.actionButton, styles.adminButton]} 
-              onPress={() => setShowCreateOwnerModal(true)}
+              onPress={() => router.push('/owner-management')}
             >
-              <Text style={styles.actionIcon}>👤</Text>
-              <Text style={styles.actionText}>{t('Create New Owner')}</Text>
+              <Text style={styles.actionIcon}>�</Text>
+              <Text style={styles.actionText}>{t('Manage Owners')}</Text>
               <Text style={styles.actionArrow}>›</Text>
             </TouchableOpacity>
           )}
@@ -420,7 +455,7 @@ export default function ProfileScreen() {
                 style={styles.settingItem}
                 onPress={() => {
                   setShowSettingsModal(false);
-                  setTimeout(() => setShowNotificationModal(true), 300);
+                  setTimeout(() => openNotificationModal(), 300);
                 }}
               >
                 <Text style={styles.settingText}>{t('Notification Settings')}</Text>
@@ -448,90 +483,6 @@ export default function ProfileScreen() {
           </ScrollView>
         </SafeAreaView>
       </Modal>
-
-      {/* Create Owner Modal - Admin Only */}
-      <Modal visible={showCreateOwnerModal} animationType="slide">
-        <SafeAreaView style={styles.modalContainer}>
-          <View style={styles.modalHeader}>
-            <Text style={styles.modalTitle}>{t('Create New Owner Account')}</Text>
-            <TouchableOpacity onPress={() => setShowCreateOwnerModal(false)}>
-              <Text style={styles.closeButton}>✕</Text>
-            </TouchableOpacity>
-          </View>
-
-          <ScrollView style={styles.modalContent}>
-            <Text style={styles.infoText}>
-              {t('Create a new owner account that can manage inventory and sales.')}
-            </Text>
-
-            <Text style={styles.label}>{t('Username')} *</Text>
-            <TextInput
-              style={styles.input}
-              value={newOwnerForm.username}
-              onChangeText={(text) => setNewOwnerForm({ ...newOwnerForm, username: text })}
-              placeholder={t('Enter username')}
-              autoCapitalize="none"
-            />
-
-            <Text style={styles.label}>{t('Password')} *</Text>
-            <TextInput
-              style={styles.input}
-              value={newOwnerForm.password}
-              onChangeText={(text) => setNewOwnerForm({ ...newOwnerForm, password: text })}
-              placeholder={t('Enter password')}
-              secureTextEntry
-            />
-
-            <Text style={styles.label}>{t('Full Name')} *</Text>
-            <TextInput
-              style={styles.input}
-              value={newOwnerForm.full_name}
-              onChangeText={(text) => setNewOwnerForm({ ...newOwnerForm, full_name: text })}
-              placeholder={t('Enter full name')}
-            />
-
-            <Text style={styles.label}>{t('Email')} (Optional)</Text>
-            <TextInput
-              style={styles.input}
-              value={newOwnerForm.email}
-              onChangeText={(text) => setNewOwnerForm({ ...newOwnerForm, email: text })}
-              placeholder={t('Enter email')}
-              keyboardType="email-address"
-              autoCapitalize="none"
-            />
-
-            <Text style={styles.label}>{t('Phone')} (Optional)</Text>
-            <TextInput
-              style={styles.input}
-              value={newOwnerForm.phone}
-              onChangeText={(text) => setNewOwnerForm({ ...newOwnerForm, phone: text })}
-              placeholder={t('Enter phone number')}
-              keyboardType="phone-pad"
-            />
-          </ScrollView>
-
-          <View style={styles.modalActions}>
-            <TouchableOpacity
-              style={[styles.modalButton, styles.cancelButton]}
-              onPress={() => setShowCreateOwnerModal(false)}
-            >
-              <Text style={styles.cancelButtonText}>Cancel</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[styles.modalButton, styles.saveButton]}
-              onPress={handleCreateOwner}
-              disabled={isSubmitting}
-            >
-              {isSubmitting ? (
-                <ActivityIndicator color="white" />
-              ) : (
-                <Text style={styles.saveButtonText}>{t('Create Owner')}</Text>
-              )}
-            </TouchableOpacity>
-          </View>
-        </SafeAreaView>
-      </Modal>
-
       {/* Change Password Modal */}
       <Modal visible={showChangePasswordModal} animationType="slide">
         <SafeAreaView style={styles.modalContainer}>
@@ -672,12 +623,30 @@ export default function ProfileScreen() {
                   <Text style={styles.settingDescription}>{t('Get notified when items are running low')}</Text>
                 </View>
                 <Switch
-                  value={notificationSettings.lowStockAlerts}
+                  value={tempNotificationSettings.lowStockAlerts}
                   onValueChange={(value) => handleNotificationToggle('lowStockAlerts', value)}
                   trackColor={{ false: '#ddd', true: '#4CAF50' }}
-                  thumbColor={notificationSettings.lowStockAlerts ? '#fff' : '#f4f3f4'}
+                  thumbColor={tempNotificationSettings.lowStockAlerts ? '#fff' : '#f4f3f4'}
                 />
               </View>
+
+              {tempNotificationSettings.lowStockAlerts && (
+                <View style={styles.timePickerContainer}>
+                  <Text style={styles.timePickerLabel}>{t('Alert Time')}</Text>
+                  <TouchableOpacity
+                    style={styles.timePickerButton}
+                    onPress={openTimePicker}
+                  >
+                    <Text style={styles.timePickerText}>
+                      {tempNotificationSettings.lowStockAlertTime || '09:00'}
+                    </Text>
+                    <Text style={styles.timePickerIcon}>🕐</Text>
+                  </TouchableOpacity>
+                  <Text style={styles.timePickerHint}>
+                    {t('Daily low stock notifications will be sent at this time')}
+                  </Text>
+                </View>
+              )}
 
               <View style={styles.toggleItem}>
                 <View style={styles.toggleInfo}>
@@ -685,10 +654,10 @@ export default function ProfileScreen() {
                   <Text style={styles.settingDescription}>{t('Get notified about daily sales')}</Text>
                 </View>
                 <Switch
-                  value={notificationSettings.salesNotifications}
+                  value={tempNotificationSettings.salesNotifications}
                   onValueChange={(value) => handleNotificationToggle('salesNotifications', value)}
                   trackColor={{ false: '#ddd', true: '#4CAF50' }}
-                  thumbColor={notificationSettings.salesNotifications ? '#fff' : '#f4f3f4'}
+                  thumbColor={tempNotificationSettings.salesNotifications ? '#fff' : '#f4f3f4'}
                 />
               </View>
             </View>
@@ -696,13 +665,75 @@ export default function ProfileScreen() {
 
           <View style={styles.modalActions}>
             <TouchableOpacity
+              style={[styles.modalButton, styles.cancelButton, { flex: 1, marginRight: 10 }]}
+              onPress={() => {
+                setTempNotificationSettings(notificationSettings);
+                setShowNotificationModal(false);
+              }}
+            >
+              <Text style={styles.cancelButtonText}>{t('Cancel')}</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
               style={[styles.modalButton, styles.saveButton, { flex: 1 }]}
-              onPress={() => setShowNotificationModal(false)}
+              onPress={handleSaveNotificationSettings}
             >
               <Text style={styles.saveButtonText}>{t('Done')}</Text>
             </TouchableOpacity>
           </View>
         </SafeAreaView>
+      </Modal>
+
+      {/* Time Picker Modal */}
+      <Modal visible={showTimePicker} animationType="slide" transparent>
+        <View style={styles.timePickerModalOverlay}>
+          <View style={styles.timePickerModal}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>{t('Set Alert Time')}</Text>
+              <TouchableOpacity onPress={() => setShowTimePicker(false)}>
+                <Text style={styles.closeButton}>✕</Text>
+              </TouchableOpacity>
+            </View>
+            
+            <View style={styles.timePickerInputContainer}>
+              <Text style={styles.timeInputLabel}>{t('Hour')} (00-23)</Text>
+              <TextInput
+                style={styles.timeInput}
+                keyboardType="number-pad"
+                maxLength={2}
+                placeholder="09"
+                value={tempHour}
+                onChangeText={(text) => setTempHour(text)}
+              />
+              
+              <Text style={styles.timeInputSeparator}>:</Text>
+              
+              <Text style={styles.timeInputLabel}>{t('Minute')} (00-59)</Text>
+              <TextInput
+                style={styles.timeInput}
+                keyboardType="number-pad"
+                maxLength={2}
+                placeholder="00"
+                value={tempMinute}
+                onChangeText={(text) => setTempMinute(text)}
+              />
+            </View>
+            
+            <View style={styles.modalActions}>
+              <TouchableOpacity
+                style={[styles.modalButton, styles.cancelButton, { flex: 1, marginRight: 10 }]}
+                onPress={() => setShowTimePicker(false)}
+              >
+                <Text style={styles.cancelButtonText}>{t('Cancel')}</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.modalButton, styles.saveButton, { flex: 1 }]}
+                onPress={handleTimeChange}
+              >
+                <Text style={styles.saveButtonText}>{t('Done')}</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
       </Modal>
 
       {/* Terms & Conditions Modal */}
@@ -1074,5 +1105,84 @@ const styles = StyleSheet.create({
     color: '#999',
     textAlign: 'center',
     marginTop: 5,
+  },
+  timePickerContainer: {
+    backgroundColor: 'white',
+    padding: 18,
+    borderRadius: 8,
+    marginBottom: 10,
+    marginLeft: 15,
+  },
+  timePickerLabel: {
+    fontSize: 14,
+    color: '#666',
+    marginBottom: 8,
+    fontWeight: '500',
+  },
+  timePickerButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: '#f5f5f5',
+    padding: 12,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#ddd',
+  },
+  timePickerText: {
+    fontSize: 18,
+    color: '#333',
+    fontWeight: '600',
+  },
+  timePickerIcon: {
+    fontSize: 20,
+  },
+  timePickerHint: {
+    fontSize: 12,
+    color: '#888',
+    marginTop: 8,
+    lineHeight: 16,
+  },
+  timePickerModalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  timePickerModal: {
+    backgroundColor: 'white',
+    borderRadius: 12,
+    width: '100%',
+    maxWidth: 400,
+  },
+  timePickerInputContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 30,
+    gap: 10,
+  },
+  timeInputLabel: {
+    fontSize: 12,
+    color: '#666',
+    marginBottom: 4,
+  },
+  timeInput: {
+    fontSize: 32,
+    fontWeight: 'bold',
+    color: '#333',
+    borderWidth: 2,
+    borderColor: '#2196F3',
+    borderRadius: 8,
+    padding: 10,
+    textAlign: 'center',
+    minWidth: 70,
+  },
+  timeInputSeparator: {
+    fontSize: 32,
+    fontWeight: 'bold',
+    color: '#333',
+    marginHorizontal: 5,
   },
 });

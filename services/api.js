@@ -42,11 +42,14 @@ api.interceptors.response.use(
 export const authAPI = {
   login: (credentials) => api.post('/auth/login', credentials),
   register: (userData) => api.post('/auth/register', userData),
+  validateToken: () => api.post('/auth/validate-token'),
   getProfile: () => api.get('/auth/profile'),
   updateProfile: (userData) => api.put('/auth/profile', userData),
   changePassword: (passwordData) => api.put('/auth/change-password', passwordData),
   getAllOwners: () => api.get('/auth/owners'),
   createOwner: (ownerData) => api.post('/auth/owners', ownerData),
+  updateOwner: (id, ownerData) => api.put(`/auth/owners/${id}`, ownerData),
+  resetOwnerPassword: (id, passwordData) => api.put(`/auth/owners/${id}/reset-password`, passwordData),
   deleteOwner: (id) => api.delete(`/auth/owners/${id}`),
 };
 
@@ -59,6 +62,7 @@ export const inventoryAPI = {
   deleteItem: (id) => api.delete(`/inventory/${id}`),
   getLowStockItems: () => api.get('/inventory/low-stock'),
   getCategories: () => api.get('/inventory/categories'),
+  getOwners: () => api.get('/inventory/owners'),
 };
 
 // Sales API
@@ -80,7 +84,7 @@ export const incomeAPI = {
 
 // Device API
 export const deviceAPI = {
-  registerDevice: (deviceData) => api.post('/devices/register', deviceData),
+  registerDevice: (deviceData, config) => api.post('/devices/register', deviceData, config),
   unregisterDevice: (pushToken) => api.post('/devices/unregister', { push_token: pushToken }),
   getMyDevices: () => api.get('/devices/my-devices'),
   getAllDevices: () => api.get('/devices/all'),

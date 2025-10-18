@@ -1,16 +1,17 @@
 import React, { useContext, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
-  ActivityIndicator,
-  Alert,
-  Modal,
-  RefreshControl,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View,
+    ActivityIndicator,
+    Alert,
+    FlatList,
+    Modal,
+    RefreshControl,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TextInput,
+    TouchableOpacity,
+    View,
 } from 'react-native';
 import RNPickerSelect from 'react-native-picker-select';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -41,7 +42,6 @@ export default function InventoryScreen() {
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const { user } = useContext(AuthContext) as { user: { username: string; id: number } | null };
   const { t } = useTranslation();
-  const [items, setItems] = useState<InventoryItem[]>([]);
   const [filteredItems, setFilteredItems] = useState<InventoryItem[]>([]);
   const [owners, setOwners] = useState<Owner[]>([]);
   const [categories, setCategories] = useState<string[]>([]);
@@ -60,6 +60,12 @@ export default function InventoryScreen() {
   type SortOption = 'name' | 'stock_asc' | 'stock_desc' | 'price_asc' | 'price_desc' | 'recent';
   const [sortBy, setSortBy] = useState<SortOption>('name');
   
+  // Pagination states
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const LIMIT = 20;
+  
   const [formData, setFormData] = useState({
     name: '',
     description: '',
@@ -71,72 +77,80 @@ export default function InventoryScreen() {
     owner_id: '',
   });
 
-  useEffect(() => {
-    fetchItems();
-    fetchOwners(); // Everyone can access owners now
-    fetchCategories();
-  }, []);
-
-  useEffect(() => {
-    let filtered = items;
-    
-    // Apply search filter
-    if (searchQuery.trim()) {
-      const query = searchQuery.toLowerCase();
-      filtered = filtered.filter(
-        (item) =>
-          item.name.toLowerCase().includes(query) ||
-          item.category?.toLowerCase().includes(query)
-      );
-    }
-    
-    // Apply owner filter
-    if (filterOwner) {
-      filtered = filtered.filter((item) => item.owner_id.toString() === filterOwner);
-    }
-    
-    // Apply category filter
-    if (filterCategory) {
-      filtered = filtered.filter((item) => item.category === filterCategory);
-    }
-    
-    // Apply sorting
-    const sorted = [...filtered].sort((a, b) => {
-      switch (sortBy) {
-        case 'name':
-          return a.name.localeCompare(b.name);
-        case 'stock_asc':
-          return a.quantity - b.quantity;
-        case 'stock_desc':
-          return b.quantity - a.quantity;
-        case 'price_asc':
-          return a.selling_price - b.selling_price;
-        case 'price_desc':
-          return b.selling_price - a.selling_price;
-        case 'recent':
-          // Assuming newer items have higher IDs
-          return b.id - a.id;
-        default:
-          return 0;
-      }
-    });
-    
-    setFilteredItems(sorted);
-  }, [searchQuery, items, filterOwner, filterCategory, sortBy]);
-
-  const fetchItems = async () => {
+  const fetchItems = React.useCallback(async (pageNum: number = 1, append: boolean = false) => {
     try {
-      const response = await inventoryAPI.getItems({});
-      setItems(response.data.items || []);
+      if (append) {
+        setLoadingMore(true);
+      } else {
+        setLoading(true);
+      }
+
+      // Map sort options to server-side parameters
+      const sortMapping: Record<SortOption, { sortBy: string; sortOrder: string }> = {
+        name: { sortBy: 'name', sortOrder: 'ASC' },
+        stock_asc: { sortBy: 'quantity', sortOrder: 'ASC' },
+        stock_desc: { sortBy: 'quantity', sortOrder: 'DESC' },
+        price_asc: { sortBy: 'selling_price', sortOrder: 'ASC' },
+        price_desc: { sortBy: 'selling_price', sortOrder: 'DESC' },
+        recent: { sortBy: 'created_at', sortOrder: 'DESC' },
+      };
+
+      const sortParams = sortMapping[sortBy];
+      
+      const params: any = {
+        ...sortParams,
+        page: pageNum,
+        limit: LIMIT,
+      };
+
+      // Add search parameter
+      if (searchQuery.trim()) {
+        params.search = searchQuery.trim();
+      }
+
+      // Add filter parameters
+      if (filterOwner) {
+        params.owner_id = filterOwner;
+      }
+
+      if (filterCategory) {
+        params.category = filterCategory;
+      }
+
+      const response = await inventoryAPI.getItems(params);
+      const newItems = response.data.items || [];
+      
+      if (append) {
+        setFilteredItems(prev => [...prev, ...newItems]);
+      } else {
+        setFilteredItems(newItems);
+      }
+      
+      setPage(pageNum);
+      setTotalPages(response.data.pagination?.pages || 1);
       setLoading(false);
       setRefreshing(false);
+      setLoadingMore(false);
     } catch (error) {
       console.error('Error fetching items:', error);
       Alert.alert('Error', t('Failed to fetch inventory items'));
       setLoading(false);
       setRefreshing(false);
+      setLoadingMore(false);
     }
-  };
+  }, [searchQuery, filterOwner, filterCategory, sortBy, t, LIMIT]);
+
+  useEffect(() => {
+    fetchOwners();
+    fetchCategories();
+  }, []);
+
+  // Fetch items when filters or sort changes - reset to page 1
+  useEffect(() => {
+    setPage(1);
+    fetchItems(1, false);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchQuery, filterOwner, filterCategory, sortBy]);
 
   const fetchOwners = async () => {
     try {
@@ -158,9 +172,15 @@ export default function InventoryScreen() {
 
   const handleRefresh = () => {
     setRefreshing(true);
-    fetchItems();
+    setPage(1);
+    fetchItems(1, false);
     fetchOwners();
     fetchCategories();
+  };
+
+  const handleLoadMore = () => {
+    if (loadingMore || page >= totalPages) return;
+    fetchItems(page + 1, true);
   };
 
   const openAddModal = () => {
@@ -225,7 +245,8 @@ export default function InventoryScreen() {
       }
 
       setShowAddModal(false);
-      fetchItems();
+      setPage(1);
+      fetchItems(1, false);
       fetchCategories(); // Refresh categories in case a new one was added
     } catch (error: any) {
       Alert.alert('Error', error.response?.data?.error || t('Failed to save item'));
@@ -245,7 +266,8 @@ export default function InventoryScreen() {
             try {
               await inventoryAPI.deleteItem(item.id);
               Alert.alert('Success', t('Item deleted successfully'));
-              fetchItems();
+              setPage(1);
+              fetchItems(1, false);
             } catch {
               Alert.alert('Error', t('Failed to delete item'));
             }
@@ -369,57 +391,63 @@ export default function InventoryScreen() {
         </View>
       )}
 
-      <ScrollView
-        style={styles.scrollView}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />}
-      >
-        {filteredItems.length === 0 ? (
+      <FlatList
+        data={filteredItems}
+        renderItem={({ item }) => (
+          <TouchableOpacity
+            style={[
+              styles.itemCard,
+              item.quantity <= item.minimum_stock && styles.lowStockCard,
+            ]}
+            onPress={() => openEditModal(item)}
+          >
+            <View style={styles.itemHeader}>
+              <Text style={styles.itemName}>{item.name}</Text>
+              {item.quantity <= item.minimum_stock && (
+                <View style={styles.lowStockBadge}>
+                  <Text style={styles.lowStockText}>{t('Low Stock')}</Text>
+                </View>
+              )}
+            </View>
+            <Text style={styles.itemCategory}>{item.category}</Text>
+            <Text style={styles.itemDescription}>{item.description}</Text>
+            <View style={styles.itemDetails}>
+              <Text style={styles.detailText}>{t('Qty:')} {item.quantity}</Text>
+              <Text style={styles.detailText}>{t('Price:')} {formatPrice(item.selling_price)}</Text>
+              <Text style={styles.detailText}>{t('Owner:')} {item.owner_name}</Text>
+            </View>
+            <View style={styles.itemActions}>
+              <TouchableOpacity
+                style={styles.editButton}
+                onPress={() => openEditModal(item)}
+              >
+                <Text style={styles.editButtonText}>{t('Edit Item')}</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.deleteButton}
+                onPress={() => handleDelete(item)}
+              >
+                <Text style={styles.deleteButtonText}>{t('Delete Item')}</Text>
+              </TouchableOpacity>
+            </View>
+          </TouchableOpacity>
+        )}
+        keyExtractor={(item) => item.id.toString()}
+        ListEmptyComponent={
           <View style={styles.emptyContainer}>
             <Text style={styles.emptyText}>{t('No items found')}</Text>
           </View>
-        ) : (
-          filteredItems.map((item) => (
-            <TouchableOpacity
-              key={item.id}
-              style={[
-                styles.itemCard,
-                item.quantity <= item.minimum_stock && styles.lowStockCard,
-              ]}
-              onPress={() => openEditModal(item)}
-            >
-              <View style={styles.itemHeader}>
-                <Text style={styles.itemName}>{item.name}</Text>
-                {item.quantity <= item.minimum_stock && (
-                  <View style={styles.lowStockBadge}>
-                    <Text style={styles.lowStockText}>{t('Low Stock')}</Text>
-                  </View>
-                )}
-              </View>
-              <Text style={styles.itemCategory}>{item.category}</Text>
-              <Text style={styles.itemDescription}>{item.description}</Text>
-              <View style={styles.itemDetails}>
-                <Text style={styles.detailText}>{t('Qty:')} {item.quantity}</Text>
-                <Text style={styles.detailText}>{t('Price:')} {formatPrice(item.selling_price)}</Text>
-                <Text style={styles.detailText}>{t('Owner:')} {item.owner_name}</Text>
-              </View>
-              <View style={styles.itemActions}>
-                <TouchableOpacity
-                  style={styles.editButton}
-                  onPress={() => openEditModal(item)}
-                >
-                  <Text style={styles.editButtonText}>{t('Edit Item')}</Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={styles.deleteButton}
-                  onPress={() => handleDelete(item)}
-                >
-                  <Text style={styles.deleteButtonText}>{t('Delete Item')}</Text>
-                </TouchableOpacity>
-              </View>
-            </TouchableOpacity>
-          ))
-        )}
-      </ScrollView>
+        }
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />}
+        onEndReached={handleLoadMore}
+        onEndReachedThreshold={0.5}
+        ListFooterComponent={
+          loadingMore ? (
+            <ActivityIndicator size="small" color="#2196F3" style={{ marginVertical: 20 }} />
+          ) : null
+        }
+        contentContainerStyle={styles.flatListContent}
+      />
 
       <Modal visible={showAddModal} animationType="slide" transparent>
         <View style={styles.modalContainer}>
@@ -828,5 +856,8 @@ const styles = StyleSheet.create({
   deleteOwnerText: {
     color: 'white',
     fontWeight: '600',
+  },
+  flatListContent: {
+    paddingBottom: 20,
   },
 });

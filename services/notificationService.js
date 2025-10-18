@@ -8,8 +8,8 @@ import { deviceAPI } from './api';
 // Configure how notifications should be handled when app is in foreground
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
-    shouldShowAlert: true,
     shouldShowBanner: true,
+    shouldShowList: true,
     shouldPlaySound: true,
     shouldSetBadge: true,
   }),
@@ -127,32 +127,7 @@ class NotificationService {
   }
 
   // Schedule daily sales notification (e.g., at 9 PM every day)
-  async scheduleDailySalesNotification() {
-    const settings = await this.getNotificationSettings();
-    
-    if (!settings.salesNotifications) {
-      return;
-    }
-
-    // Cancel existing daily notifications
-    await this.cancelScheduledNotifications('daily_sales');
-
-    // Schedule for 9 PM daily
-    const trigger = {
-      hour: 21,
-      minute: 0,
-      repeats: true,
-    };
-
-    await Notifications.scheduleNotificationAsync({
-      content: {
-        title: '📊 Daily Sales Summary',
-        body: 'Check your daily sales performance',
-        data: { type: 'daily_sales_scheduled' },
-      },
-      trigger,
-    });
-  }
+  // Removed: client-side scheduled daily sales notifications. Server-driven notifications are preferred.
 
   // Cancel all scheduled notifications of a specific type
   async cancelScheduledNotifications(type) {
@@ -169,12 +144,8 @@ class NotificationService {
     try {
       await SecureStore.setItemAsync('notificationSettings', JSON.stringify(settings));
       
-      // Update scheduled notifications based on new settings
-      if (settings.salesNotifications) {
-        await this.scheduleDailySalesNotification();
-      } else {
-        await this.cancelScheduledNotifications('daily_sales_scheduled');
-      }
+      // Ensure no client-side scheduled daily notifications remain
+      await this.cancelScheduledNotifications('daily_sales_scheduled');
       
       return true;
     } catch (error) {
@@ -194,12 +165,14 @@ class NotificationService {
       return {
         lowStockAlerts: true,
         salesNotifications: true,
+        lowStockAlertTime: '09:00', // Default 9:00 AM
       };
     } catch (error) {
       console.error('Error getting notification settings:', error);
       return {
         lowStockAlerts: true,
         salesNotifications: true,
+        lowStockAlertTime: '09:00',
       };
     }
   }
@@ -248,7 +221,7 @@ class NotificationService {
   }
 
   // Register device with server
-  async registerDeviceWithServer(pushToken, notificationSettings = null) {
+  async registerDeviceWithServer(pushToken, notificationSettings = null, authToken = null) {
     try {
       if (!pushToken) {
         console.error('No push token provided for server registration');
@@ -266,11 +239,19 @@ class NotificationService {
         device_model: Device.modelName || `${Device.brand} ${Device.deviceName}`,
         low_stock_alerts: notificationSettings.lowStockAlerts,
         sales_notifications: notificationSettings.salesNotifications,
+        low_stock_alert_time: notificationSettings.lowStockAlertTime ? `${notificationSettings.lowStockAlertTime}:00` : '09:00:00',
       };
 
       console.log('Registering device with server:', deviceInfo);
       
-      const response = await deviceAPI.registerDevice(deviceInfo);
+      // If auth token is provided, use it directly in the request
+      const config = authToken ? {
+        headers: {
+          Authorization: `Bearer ${authToken}`
+        }
+      } : {};
+      
+      const response = await deviceAPI.registerDevice(deviceInfo, config);
       
       if (response.data) {
         console.log('✅ Device registered with server successfully');
@@ -299,6 +280,7 @@ class NotificationService {
       const serverPrefs = {
         low_stock_alerts: preferences.lowStockAlerts,
         sales_notifications: preferences.salesNotifications,
+        low_stock_alert_time: preferences.lowStockAlertTime ? `${preferences.lowStockAlertTime}:00` : undefined,
       };
 
       try {
@@ -309,7 +291,9 @@ class NotificationService {
         // If device not found, register it first
         if (updateError.response?.status === 404 || updateError.response?.data?.error === 'Device not found') {
           console.log('Device not found, registering device first...');
-          const registered = await this.registerDeviceWithServer(pushToken, preferences);
+          // Get auth token from SecureStore to ensure it's available
+          const authToken = await SecureStore.getItemAsync('authToken');
+          const registered = await this.registerDeviceWithServer(pushToken, preferences, authToken);
           if (registered) {
             console.log('✅ Device registered and preferences set');
             return true;

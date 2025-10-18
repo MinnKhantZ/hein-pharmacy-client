@@ -39,11 +39,40 @@ export const AuthProvider = ({ children }) => {
       ]);
 
       if (storedToken && storedUser) {
-        setToken(storedToken);
-        setUser(JSON.parse(storedUser));
+        // Validate the token with the server
+        try {
+          const response = await authAPI.validateToken();
+          const { owner } = response.data;
+          
+          // Token is valid, update user data in case it changed
+          await SecureStore.setItemAsync('user', JSON.stringify(owner));
+          setToken(storedToken);
+          setUser(owner);
+          console.log('Token validated successfully');
+        } catch (validationError) {
+          console.log('Token validation failed:', validationError);
+          // Token is invalid or expired, clear stored data
+          await Promise.all([
+            SecureStore.deleteItemAsync('authToken'),
+            SecureStore.deleteItemAsync('user'),
+          ]);
+          setToken(null);
+          setUser(null);
+        }
       }
     } catch (error) {
       console.log('Error loading stored auth:', error);
+      // Clear potentially corrupted data
+      try {
+        await Promise.all([
+          SecureStore.deleteItemAsync('authToken'),
+          SecureStore.deleteItemAsync('user'),
+        ]);
+      } catch (clearError) {
+        console.log('Error clearing auth:', clearError);
+      }
+      setToken(null);
+      setUser(null);
     } finally {
       setIsLoading(false);
     }
@@ -69,7 +98,8 @@ export const AuthProvider = ({ children }) => {
         
         if (pushToken) {
           console.log('Registering device with server...');
-          const registered = await notificationService.registerDeviceWithServer(pushToken);
+          // Pass the auth token explicitly to ensure it's available for the API call
+          const registered = await notificationService.registerDeviceWithServer(pushToken, null, authToken);
           if (registered) {
             console.log('✅ Device registered successfully after login');
           }
@@ -103,6 +133,21 @@ export const AuthProvider = ({ children }) => {
 
       setToken(authToken);
       setUser(owner);
+
+      // Register device for push notifications after successful registration
+      try {
+        const pushToken = await notificationService.getStoredPushToken();
+        if (pushToken) {
+          console.log('Registering device with server after registration...');
+          const registered = await notificationService.registerDeviceWithServer(pushToken, null, authToken);
+          if (registered) {
+            console.log('✅ Device registered successfully after registration');
+          }
+        }
+      } catch (notifError) {
+        console.error('❌ Error registering device after registration:', notifError);
+        // Don't fail registration if device registration fails
+      }
 
       return { success: true };
     } catch (error) {

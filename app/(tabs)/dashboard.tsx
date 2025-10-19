@@ -8,25 +8,26 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAuth } from '../../contexts/AuthContext';
 
 export default function DashboardScreen() {
   const { user } = useAuth();
   const { t } = useTranslation();
+  const insets = useSafeAreaInsets();
 
   const dashboardItems = [
     {
       title: t('Add New Item'),
       description: t('Add new inventory items'),
-      action: () => router.push('/(tabs)/inventory'),
+      action: () => router.push('/(tabs)/inventory?openModal=true'),
       color: '#4CAF50',
       icon: '📦',
     },
     {
       title: t('Make Sale'),
       description: t('Record new sales'),
-      action: () => router.push('/(tabs)/sales'),
+      action: () => router.push('/(tabs)/sales?openModal=true'),
       color: '#2196F3',
       icon: '💰',
     },
@@ -48,7 +49,7 @@ export default function DashboardScreen() {
 
   return (
     <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>
-      <ScrollView contentContainerStyle={styles.scrollContainer}>
+      <ScrollView contentContainerStyle={[styles.scrollContainer, { paddingBottom: insets.bottom + 100 }]}>
         <View style={styles.header}>
           <Text style={styles.welcomeText}>{t('Welcome back,')}</Text>
           <Text style={styles.userName}>{(user as any)?.full_name || 'User'}</Text>
@@ -84,7 +85,7 @@ const styles = StyleSheet.create({
   },
   scrollContainer: {
     padding: 20,
-    paddingBottom: 100, // Extra padding for tab bar
+    paddingBottom: 20, // Base padding, additional padding added dynamically
   },
   header: {
     marginBottom: 30,

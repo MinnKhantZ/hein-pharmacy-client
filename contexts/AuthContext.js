@@ -9,7 +9,6 @@ export const AuthContext = createContext({
   isAuthenticated: false,
   token: null,
   login: async (credentials) => ({ success: false, error: '' }),
-  register: async (userData) => ({ success: false, error: '' }),
   logout: async () => {},
   updateProfile: async (profileData) => ({ success: false, error: '' }),
 });
@@ -121,44 +120,6 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  const register = async (userData) => {
-    try {
-      const response = await authAPI.register(userData);
-      const { token: authToken, owner } = response.data;
-
-      await Promise.all([
-        SecureStore.setItemAsync('authToken', authToken),
-        SecureStore.setItemAsync('user', JSON.stringify(owner)),
-      ]);
-
-      setToken(authToken);
-      setUser(owner);
-
-      // Register device for push notifications after successful registration
-      try {
-        const pushToken = await notificationService.getStoredPushToken();
-        if (pushToken) {
-          console.log('Registering device with server after registration...');
-          const registered = await notificationService.registerDeviceWithServer(pushToken, null, authToken);
-          if (registered) {
-            console.log('✅ Device registered successfully after registration');
-          }
-        }
-      } catch (notifError) {
-        console.error('❌ Error registering device after registration:', notifError);
-        // Don't fail registration if device registration fails
-      }
-
-      return { success: true };
-    } catch (error) {
-      console.log('Register error:', error);
-      return { 
-        success: false, 
-        error: error.response?.data?.error || 'Registration failed' 
-      };
-    }
-  };
-
   const logout = async () => {
     try {
       // Unregister device before logout
@@ -207,7 +168,6 @@ export const AuthProvider = ({ children }) => {
     isLoading,
     isAuthenticated: !!token && !!user,
     login,
-    register,
     logout,
     updateProfile,
   };

@@ -1,20 +1,25 @@
+import { useLocalSearchParams } from 'expo-router';
 import React, { useContext, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
-    ActivityIndicator,
-    Alert,
-    FlatList,
-    Modal,
-    RefreshControl,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
+  ActivityIndicator,
+  Alert,
+  FlatList,
+  KeyboardAvoidingView,
+  Modal,
+  Platform,
+  RefreshControl,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from 'react-native';
 import RNPickerSelect from 'react-native-picker-select';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import OwnerSelector from '../../components/OwnerSelector';
+import SearchableDropdown from '../../components/SearchableDropdown';
 import { AuthContext } from '../../contexts/AuthContext';
 import { authAPI, inventoryAPI } from '../../services/api';
 import { formatPrice } from '../../utils/priceFormatter';
@@ -42,11 +47,13 @@ export default function InventoryScreen() {
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const { user } = useContext(AuthContext) as { user: { username: string; id: number } | null };
   const { t } = useTranslation();
+  const params = useLocalSearchParams<{ openModal?: string }>();
+  const insets = useSafeAreaInsets();
   const [filteredItems, setFilteredItems] = useState<InventoryItem[]>([]);
   const [owners, setOwners] = useState<Owner[]>([]);
   const [categories, setCategories] = useState<string[]>([]);
-  const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [showAddModal, setShowAddModal] = useState(false);
   const [selectedItem, setSelectedItem] = useState<InventoryItem | null>(null);
@@ -64,6 +71,7 @@ export default function InventoryScreen() {
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [loadingMore, setLoadingMore] = useState(false);
+  const [loadingItems, setLoadingItems] = useState(true);
   const LIMIT = 20;
   
   const [formData, setFormData] = useState({
@@ -82,8 +90,9 @@ export default function InventoryScreen() {
       if (append) {
         setLoadingMore(true);
       } else {
-        setLoading(true);
+        setLoadingItems(true);
       }
+      // Don't show full-screen loading, only list loading indicators
 
       // Map sort options to server-side parameters
       const sortMapping: Record<SortOption, { sortBy: string; sortOrder: string }> = {
@@ -128,15 +137,15 @@ export default function InventoryScreen() {
       
       setPage(pageNum);
       setTotalPages(response.data.pagination?.pages || 1);
-      setLoading(false);
       setRefreshing(false);
       setLoadingMore(false);
+      setLoadingItems(false);
     } catch (error) {
       console.error('Error fetching items:', error);
       Alert.alert('Error', t('Failed to fetch inventory items'));
-      setLoading(false);
       setRefreshing(false);
       setLoadingMore(false);
+      setLoadingItems(false);
     }
   }, [searchQuery, filterOwner, filterCategory, sortBy, t, LIMIT]);
 
@@ -144,6 +153,17 @@ export default function InventoryScreen() {
     fetchOwners();
     fetchCategories();
   }, []);
+
+  // Handle navigation parameter to open modal
+  useEffect(() => {
+    if (params.openModal === 'true') {
+      // Small delay to ensure owners and categories are loaded
+      const timer = setTimeout(() => {
+        openAddModal();
+      }, 100);
+      return () => clearTimeout(timer);
+    }
+  }, [params.openModal]);
 
   // Fetch items when filters or sort changes - reset to page 1
   useEffect(() => {
@@ -225,6 +245,7 @@ export default function InventoryScreen() {
     }
 
     try {
+      setSubmitting(true);
       const payload: any = {
         name: formData.name,
         description: formData.description,
@@ -244,11 +265,13 @@ export default function InventoryScreen() {
         Alert.alert('Success', t('Item added successfully'));
       }
 
+      setSubmitting(false);
       setShowAddModal(false);
       setPage(1);
       fetchItems(1, false);
       fetchCategories(); // Refresh categories in case a new one was added
     } catch (error: any) {
+      setSubmitting(false);
       Alert.alert('Error', error.response?.data?.error || t('Failed to save item'));
     }
   };
@@ -273,17 +296,9 @@ export default function InventoryScreen() {
             }
           },
         },
-      ]
+      ],
     );
   };
-
-  if (loading) {
-    return (
-      <SafeAreaView style={styles.container}>
-        <ActivityIndicator size="large" color="#2196F3" style={{ marginTop: 50 }} />
-      </SafeAreaView>
-    );
-  }
 
   return (
     <SafeAreaView style={styles.container}>
@@ -306,7 +321,7 @@ export default function InventoryScreen() {
           onPress={() => setShowFilters(!showFilters)}
         >
           <Text style={styles.filterButtonText}>
-            {showFilters ? '▲ Hide Filters' : '▼ Show Filters'}
+            {showFilters ? t('Hide Filters') : t('Show Filters')}
           </Text>
         </TouchableOpacity>
       </View>
@@ -391,89 +406,86 @@ export default function InventoryScreen() {
         </View>
       )}
 
-      <FlatList
-        data={filteredItems}
-        renderItem={({ item }) => (
-          <TouchableOpacity
-            style={[
-              styles.itemCard,
-              item.quantity <= item.minimum_stock && styles.lowStockCard,
-            ]}
-            onPress={() => openEditModal(item)}
-          >
-            <View style={styles.itemHeader}>
-              <Text style={styles.itemName}>{item.name}</Text>
-              {item.quantity <= item.minimum_stock && (
-                <View style={styles.lowStockBadge}>
-                  <Text style={styles.lowStockText}>{t('Low Stock')}</Text>
-                </View>
-              )}
+      {loadingItems ? (
+        <ActivityIndicator size="large" color="#2196F3" style={{ marginTop: 50 }} />
+      ) : (
+        <FlatList
+          data={filteredItems}
+          renderItem={({ item }) => (
+            <TouchableOpacity
+              style={[
+                styles.itemCard,
+                item.quantity <= item.minimum_stock && styles.lowStockCard,
+              ]}
+              onPress={() => openEditModal(item)}
+            >
+              <View style={styles.itemHeader}>
+                <Text style={styles.itemName}>{item.name}</Text>
+                {item.quantity <= item.minimum_stock && (
+                  <View style={styles.lowStockBadge}>
+                    <Text style={styles.lowStockText}>{t('Low Stock')}</Text>
+                  </View>
+                )}
+              </View>
+              <Text style={styles.itemCategory}>{item.category}</Text>
+              <Text style={styles.itemDescription}>{item.description}</Text>
+              <View style={styles.itemDetails}>
+                <Text style={styles.detailText}>{t('Qty:')} {item.quantity}</Text>
+                <Text style={styles.detailText}>{t('Price:')} {formatPrice(item.selling_price)}</Text>
+                <Text style={styles.detailText}>{t('Owner:')} {item.owner_name}</Text>
+              </View>
+              <View style={styles.itemActions}>
+                <TouchableOpacity
+                  style={styles.editButton}
+                  onPress={() => openEditModal(item)}
+                >
+                  <Text style={styles.editButtonText}>{t('Edit Item')}</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={styles.deleteButton}
+                  onPress={() => handleDelete(item)}
+                >
+                  <Text style={styles.deleteButtonText}>{t('Delete Item')}</Text>
+                </TouchableOpacity>
+              </View>
+            </TouchableOpacity>
+          )}
+          keyExtractor={(item) => item.id.toString()}
+          ListEmptyComponent={
+            <View style={styles.emptyContainer}>
+              <Text style={styles.emptyText}>{t('No items found')}</Text>
             </View>
-            <Text style={styles.itemCategory}>{item.category}</Text>
-            <Text style={styles.itemDescription}>{item.description}</Text>
-            <View style={styles.itemDetails}>
-              <Text style={styles.detailText}>{t('Qty:')} {item.quantity}</Text>
-              <Text style={styles.detailText}>{t('Price:')} {formatPrice(item.selling_price)}</Text>
-              <Text style={styles.detailText}>{t('Owner:')} {item.owner_name}</Text>
-            </View>
-            <View style={styles.itemActions}>
-              <TouchableOpacity
-                style={styles.editButton}
-                onPress={() => openEditModal(item)}
-              >
-                <Text style={styles.editButtonText}>{t('Edit Item')}</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={styles.deleteButton}
-                onPress={() => handleDelete(item)}
-              >
-                <Text style={styles.deleteButtonText}>{t('Delete Item')}</Text>
-              </TouchableOpacity>
-            </View>
-          </TouchableOpacity>
-        )}
-        keyExtractor={(item) => item.id.toString()}
-        ListEmptyComponent={
-          <View style={styles.emptyContainer}>
-            <Text style={styles.emptyText}>{t('No items found')}</Text>
-          </View>
-        }
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />}
-        onEndReached={handleLoadMore}
-        onEndReachedThreshold={0.5}
-        ListFooterComponent={
-          loadingMore ? (
-            <ActivityIndicator size="small" color="#2196F3" style={{ marginVertical: 20 }} />
-          ) : null
-        }
-        contentContainerStyle={styles.flatListContent}
-      />
+          }
+          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />}
+          onEndReached={handleLoadMore}
+          onEndReachedThreshold={0.5}
+          ListFooterComponent={
+            loadingMore ? (
+              <ActivityIndicator size="small" color="#2196F3" style={{ marginVertical: 20 }} />
+            ) : null
+          }
+          contentContainerStyle={[styles.flatListContent, { paddingBottom: insets.bottom + 50 }]}
+        />
+      )}
 
       <Modal visible={showAddModal} animationType="slide" transparent>
-        <View style={styles.modalContainer}>
-          <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>
-              {selectedItem ? t('Edit Item') : t('Add New Item')}
-            </Text>
-            
-            <ScrollView>
-              <View style={styles.pickerContainer}>
-                <Text style={styles.pickerLabel}>{t('Owner')}</Text>
-                <RNPickerSelect
-                  value={formData.owner_id}
-                  onValueChange={(value: string) => setFormData({ ...formData, owner_id: value })}
-                  items={owners.map((owner) => ({
-                    label: owner.full_name,
-                    value: owner.id.toString(),
-                  }))}
-                  placeholder={{ label: t('Select Owner'), value: '' }}
-                  style={{
-                    inputIOS: styles.pickerInput,
-                    inputAndroid: styles.pickerInput,
-                    inputWeb: styles.pickerInput,
-                  }}
-                />
-              </View>
+        <KeyboardAvoidingView 
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          style={{ flex: 1 }}
+        >
+          <View style={styles.modalContainer}>
+            <View style={styles.modalContent}>
+              <Text style={styles.modalTitle}>
+                {selectedItem ? t('Edit Item') : t('Add New Item')}
+              </Text>
+              
+              <ScrollView>
+              <OwnerSelector
+                placeholder={t('Select Owner')}
+                options={owners}
+                selectedValue={formData.owner_id}
+                onValueChange={(value: string) => setFormData({ ...formData, owner_id: value })}
+              />
               
               <TextInput
                 style={styles.input}
@@ -482,29 +494,16 @@ export default function InventoryScreen() {
                 onChangeText={(text) => setFormData({ ...formData, name: text })}
               />
               
-              <View style={styles.pickerContainer}>
-                <Text style={styles.pickerLabel}>{t('Category')}</Text>
-                <RNPickerSelect
-                  value={formData.category}
-                  onValueChange={(value: string) => setFormData({ ...formData, category: value })}
-                  items={categories.map((cat) => ({
-                    label: cat,
-                    value: cat,
-                  }))}
-                  placeholder={{ label: t('Select or type below'), value: '' }}
-                  style={{
-                    inputIOS: styles.pickerInput,
-                    inputAndroid: styles.pickerInput,
-                    inputWeb: styles.pickerInput,
-                  }}
-                />
-                <TextInput
-                  style={[styles.input, { marginTop: 5 }]}
-                  placeholder={t('Or type new category')}
-                  value={formData.category}
-                  onChangeText={(text) => setFormData({ ...formData, category: text })}
-                />
-              </View>
+              <SearchableDropdown
+                placeholder={t('Category *')}
+                options={categories}
+                selectedValue={formData.category}
+                onValueChange={(value: string) => setFormData({ ...formData, category: value })}
+                allowNew={true}
+                onNewValueAdded={(newCategory: string) => {
+                  setCategories([...categories, newCategory]);
+                }}
+              />
               <TextInput
                 style={[styles.input, styles.textArea]}
                 placeholder={t('Description')}
@@ -547,18 +546,25 @@ export default function InventoryScreen() {
               <TouchableOpacity
                 style={[styles.modalButton, styles.cancelButton]}
                 onPress={() => setShowAddModal(false)}
+                disabled={submitting}
               >
-                <Text style={styles.cancelButtonText}>Cancel</Text>
+                <Text style={styles.cancelButtonText}>{t('Cancel')}</Text>
               </TouchableOpacity>
               <TouchableOpacity
-                style={[styles.modalButton, styles.saveButton]}
+                style={[styles.modalButton, styles.saveButton, submitting && styles.saveButtonDisabled]}
                 onPress={handleSubmit}
+                disabled={submitting}
               >
-                <Text style={styles.saveButtonText}>{t('Save Item')}</Text>
+                {submitting ? (
+                  <ActivityIndicator color="white" size="small" />
+                ) : (
+                  <Text style={styles.saveButtonText}>{t('Save Item')}</Text>
+                )}
               </TouchableOpacity>
             </View>
           </View>
         </View>
+        </KeyboardAvoidingView>
       </Modal>
     </SafeAreaView>
   );
@@ -748,11 +754,15 @@ const styles = StyleSheet.create({
   saveButton: {
     backgroundColor: '#2196F3',
   },
+  saveButtonDisabled: {
+    backgroundColor: '#9E9E9E',
+    opacity: 0.7,
+  },
   saveButtonText: {
     color: 'white',
     fontWeight: '600',
   },
-  pickerContainer: {
+  fieldContainer: {
     marginBottom: 15,
   },
   pickerLabel: {
@@ -771,6 +781,7 @@ const styles = StyleSheet.create({
     padding: 12,
     fontSize: 16,
     color: '#333',
+    width: '100%',
   },
   filterButton: {
     backgroundColor: '#2196F3',
@@ -807,6 +818,7 @@ const styles = StyleSheet.create({
     padding: 12,
     fontSize: 16,
     color: '#333',
+    width: '100%',
   },
   clearFiltersButton: {
     backgroundColor: '#f44336',
@@ -858,6 +870,6 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   flatListContent: {
-    paddingBottom: 20,
+    paddingBottom: 20, // Base padding, additional padding added dynamically
   },
 });

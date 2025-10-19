@@ -1,15 +1,14 @@
-import { Ionicons } from '@expo/vector-icons';
-import { router, useLocalSearchParams } from 'expo-router';
+import { useLocalSearchParams } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
-    ActivityIndicator,
-    RefreshControl,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View,
+  ActivityIndicator,
+  RefreshControl,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { incomeAPI } from '../services/api';
@@ -142,12 +141,28 @@ export default function IncomeDetailsScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-          <Ionicons name="arrow-back" size={24} color="#333" />
-        </TouchableOpacity>
-        <Text style={styles.title}>{t('All Records')}</Text>
-        <View style={styles.placeholder} />
+
+      {/* Period Filters - Fixed below header */}
+      <View style={styles.periodFilters}>
+        {(['daily', 'monthly', 'yearly'] as Period[]).map((p) => (
+          <TouchableOpacity
+            key={p}
+            style={[
+              styles.periodButton,
+              period === p && styles.periodButtonActive,
+            ]}
+            onPress={() => setPeriod(p)}
+          >
+            <Text
+              style={[
+                styles.periodButtonText,
+                period === p && styles.periodButtonTextActive,
+              ]}
+            >
+              {t(p.charAt(0).toUpperCase() + p.slice(1))}
+            </Text>
+          </TouchableOpacity>
+        ))}
       </View>
 
       <ScrollView
@@ -157,28 +172,6 @@ export default function IncomeDetailsScreen() {
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
         }
       >
-        {/* Period Filters */}
-        <View style={styles.periodFilters}>
-          {(['daily', 'monthly', 'yearly'] as Period[]).map((p) => (
-            <TouchableOpacity
-              key={p}
-              style={[
-                styles.periodButton,
-                period === p && styles.periodButtonActive,
-              ]}
-              onPress={() => setPeriod(p)}
-            >
-              <Text
-                style={[
-                  styles.periodButtonText,
-                  period === p && styles.periodButtonTextActive,
-                ]}
-              >
-                {p.charAt(0).toUpperCase() + p.slice(1)}
-              </Text>
-            </TouchableOpacity>
-          ))}
-        </View>
 
         {loading ? (
           <ActivityIndicator size="large" color="#2196F3" style={styles.loader} />
@@ -265,7 +258,7 @@ export default function IncomeDetailsScreen() {
                         </Text>
                       </View>
                       <View style={styles.summaryItemDetail}>
-                        <Text style={styles.detailLabel}>Items:</Text>
+                        <Text style={styles.detailLabel}>{t('Items')}:</Text>
                         <Text style={styles.detailValue}>{summary.item_count}</Text>
                       </View>
                     </View>
@@ -292,7 +285,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    padding: 20,
+    padding: 16,
     paddingTop: 10,
     backgroundColor: 'white',
   },
@@ -311,20 +304,20 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   scrollView: {
-    padding: 20,
-    paddingBottom: 100,
+    padding: 16,
   },
   periodFilters: {
     flexDirection: 'row',
     gap: 10,
     backgroundColor: 'white',
-    padding: 15,
+    padding: 12,
     borderRadius: 10,
-    marginBottom: 10,
+    marginHorizontal: 16,
+    marginBottom: 12,
   },
   periodButton: {
     flex: 1,
-    padding: 12,
+    padding: 10,
     borderRadius: 8,
     borderWidth: 2,
     borderColor: '#e0e0e0',
@@ -347,22 +340,22 @@ const styles = StyleSheet.create({
   },
   section: {
     backgroundColor: 'white',
-    padding: 20,
+    padding: 16,
     borderRadius: 10,
-    marginBottom: 10,
+    marginBottom: 12,
   },
   sectionTitle: {
     fontSize: 18,
     fontWeight: 'bold',
     color: '#333',
-    marginBottom: 15,
+    marginBottom: 12,
   },
   ownerChip: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
+    paddingHorizontal: 14,
+    paddingVertical: 7,
     borderRadius: 20,
     backgroundColor: '#f5f5f5',
-    marginRight: 10,
+    marginRight: 8,
   },
   ownerChipActive: {
     backgroundColor: '#2196F3',
@@ -376,7 +369,7 @@ const styles = StyleSheet.create({
     color: 'white',
   },
   summaryItem: {
-    padding: 15,
+    padding: 12,
     backgroundColor: '#f9f9f9',
     borderRadius: 8,
     marginBottom: 10,
@@ -385,7 +378,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 10,
+    marginBottom: 8,
   },
   summaryItemOwner: {
     fontSize: 16,
@@ -419,7 +412,7 @@ const styles = StyleSheet.create({
   emptyText: {
     textAlign: 'center',
     color: '#999',
-    padding: 40,
+    padding: 30,
     fontSize: 16,
   },
 });

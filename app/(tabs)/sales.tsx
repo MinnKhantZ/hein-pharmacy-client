@@ -1,19 +1,22 @@
+import { useLocalSearchParams } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
-    ActivityIndicator,
-    Alert,
-    FlatList,
-    Modal,
-    RefreshControl,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
+  ActivityIndicator,
+  Alert,
+  FlatList,
+  KeyboardAvoidingView,
+  Modal,
+  Platform,
+  RefreshControl,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNotifications } from '../../contexts/NotificationContext';
 import { inventoryAPI, salesAPI } from '../../services/api';
 import { formatPrice } from '../../utils/priceFormatter';
@@ -42,6 +45,8 @@ interface SaleRecord {
   id: number;
   total_amount: number;
   payment_method: string;
+  is_paid: boolean;
+  paid_date: string | null;
   customer_name: string | null;
   customer_phone: string | null;
   notes: string | null;
@@ -59,11 +64,14 @@ interface SaleRecord {
 export default function SalesScreen() {
   const { t } = useTranslation();
   const { expoPushToken } = useNotifications();
+  const insets = useSafeAreaInsets();
+  const params = useLocalSearchParams<{ openModal?: string }>();
   const [showSaleModal, setShowSaleModal] = useState(false);
   const [inventoryItems, setInventoryItems] = useState<InventoryItem[]>([]);
   const [saleItems, setSaleItems] = useState<SaleItem[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [loading, setLoading] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
   const [customerName, setCustomerName] = useState('');
   const [customerPhone, setCustomerPhone] = useState('');
   const [paymentMethod, setPaymentMethod] = useState('cash');
@@ -107,6 +115,22 @@ export default function SalesScreen() {
     fetchSalesHistory(1, false);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  useEffect(() => {
+    const shouldOpenModal = Array.isArray(params.openModal)
+      ? params.openModal.includes('true')
+      : params.openModal === 'true';
+
+    if (!shouldOpenModal) {
+      return;
+    }
+
+    const timer = setTimeout(() => {
+      setShowSaleModal(true);
+    }, 100);
+
+    return () => clearTimeout(timer);
+  }, [params.openModal]);
 
   // Debounced search and filter/sort effect
   useEffect(() => {
@@ -249,6 +273,7 @@ export default function SalesScreen() {
     }
 
     try {
+      setSubmitting(true);
       const payload = {
         items: saleItems.map(item => ({
           inventory_item_id: item.inventory_item_id,
@@ -262,6 +287,7 @@ export default function SalesScreen() {
       };
 
       await salesAPI.createSale(payload);
+      setSubmitting(false);
       Alert.alert('Success', t('Sale recorded successfully'), [
         {
           text: 'OK',
@@ -281,8 +307,35 @@ export default function SalesScreen() {
         }
       ]);
     } catch (error: any) {
+      setSubmitting(false);
       Alert.alert('Error', error.response?.data?.error || t('Failed to record sale'));
     }
+  };
+
+  const handleMarkAsPaid = async (saleId: number) => {
+    Alert.alert(
+      t('Mark as Paid'),
+      t('Are you sure you want to mark this sale as paid? This will add it to the income for the original sale date.'),
+      [
+        {
+          text: t('Cancel'),
+          style: 'cancel'
+        },
+        {
+          text: t('Mark as Paid'),
+          onPress: async () => {
+            try {
+              await salesAPI.markAsPaid(saleId);
+              Alert.alert('Success', t('Sale marked as paid successfully'));
+              // Refresh sales history
+              fetchSalesHistory(page, false);
+            } catch (error: any) {
+              Alert.alert('Error', error.response?.data?.error || t('Failed to mark sale as paid'));
+            }
+          }
+        }
+      ]
+    );
   };
 
   return (
@@ -322,7 +375,7 @@ export default function SalesScreen() {
           <View style={styles.filterRow}>
             <Text style={styles.filterLabel}>{t('Payment:')}</Text>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filterOptions}>
-              {['all', 'cash', 'mobile'].map((method) => (
+              {['all', 'cash', 'mobile', 'credit'].map((method) => (
                 <TouchableOpacity
                   key={method}
                   style={[
@@ -337,7 +390,7 @@ export default function SalesScreen() {
                       paymentFilter === method && styles.filterOptionTextActive,
                     ]}
                   >
-                    {method === 'all' ? t('All') : method === 'mobile' ? t('Mobile') : t('Cash')}
+                    {method === 'all' ? t('All') : method === 'mobile' ? t('Mobile') : method === 'credit' ? t('Credit') : t('Cash')}
                   </Text>
                 </TouchableOpacity>
               ))}
@@ -407,6 +460,30 @@ export default function SalesScreen() {
               <Text style={styles.salePayment}>
                 {t('Payment:')} {sale.payment_method === 'mobile' || sale.payment_method === 'mobile_wallet' ? t('Mobile') : sale.payment_method === 'card' ? t('Card') : sale.payment_method === 'credit' ? t('Credit') : t('Cash')}
               </Text>
+              
+              {/* Payment Status - Show only for credit sales */}
+              {sale.payment_method === 'credit' && (
+                <View style={styles.paymentStatusContainer}>
+                  {sale.is_paid ? (
+                    <View style={styles.paidBadge}>
+                      <Text style={styles.paidBadgeText}>✓ {t('Paid')}</Text>
+                      {sale.paid_date && (
+                        <Text style={styles.paidDateText}>
+                          {t('Paid on:')} {new Date(sale.paid_date).toLocaleDateString()}
+                        </Text>
+                      )}
+                    </View>
+                  ) : (
+                    <TouchableOpacity
+                      style={styles.markAsPaidButton}
+                      onPress={() => handleMarkAsPaid(sale.id)}
+                    >
+                      <Text style={styles.markAsPaidText}>☐ {t('Mark as Paid')}</Text>
+                    </TouchableOpacity>
+                  )}
+                </View>
+              )}
+              
               <View style={styles.saleItemsList}>
                 <Text style={styles.itemsTitle}>{t('Items:')}</Text>
                 {sale.items.map((item) => (
@@ -442,20 +519,24 @@ export default function SalesScreen() {
               <ActivityIndicator size="small" color="#2196F3" style={{ marginVertical: 20 }} />
             ) : null
           }
-          contentContainerStyle={styles.scrollView}
+          contentContainerStyle={[styles.scrollView, { paddingBottom: insets.bottom + 50, paddingTop: 15 }]}
         />
       )}
 
       <Modal visible={showSaleModal} animationType="slide">
         <SafeAreaView style={styles.modalContainer}>
-          <View style={styles.modalHeader}>
-            <Text style={styles.modalTitle}>{t('New Sale')}</Text>
-            <TouchableOpacity onPress={() => setShowSaleModal(false)}>
-              <Text style={styles.closeButton}>✕</Text>
-            </TouchableOpacity>
-          </View>
+          <KeyboardAvoidingView 
+            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+            style={{ flex: 1 }}
+          >
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>{t('New Sale')}</Text>
+              <TouchableOpacity onPress={() => setShowSaleModal(false)}>
+                <Text style={styles.closeButton}>✕</Text>
+              </TouchableOpacity>
+            </View>
 
-          <ScrollView style={styles.modalContent} keyboardShouldPersistTaps="handled">
+            <ScrollView style={styles.modalContent} keyboardShouldPersistTaps="handled">
             {/* Search and Add Items Section - Moved to top */}
             <View style={styles.inventorySection}>
               <Text style={styles.sectionTitle}>{t('Search & Add Items')}</Text>
@@ -570,7 +651,7 @@ export default function SalesScreen() {
                 keyboardType="phone-pad"
               />
               <View style={styles.paymentMethods}>
-                {['cash', 'mobile'].map((method) => (
+                {['cash', 'mobile', 'credit'].map((method) => (
                   <TouchableOpacity
                     key={method}
                     style={[
@@ -585,7 +666,7 @@ export default function SalesScreen() {
                         paymentMethod === method && styles.paymentMethodTextActive,
                       ]}
                     >
-                      {method === 'mobile' ? t('Mobile') : t('Cash')}
+                      {method === 'mobile' ? t('Mobile') : method === 'credit' ? t('Credit') : t('Cash')}
                     </Text>
                   </TouchableOpacity>
                 ))}
@@ -605,16 +686,23 @@ export default function SalesScreen() {
             <TouchableOpacity
               style={[styles.actionButton, styles.cancelButtonModal]}
               onPress={() => setShowSaleModal(false)}
+              disabled={submitting}
             >
-              <Text style={styles.cancelButtonText}>Cancel</Text>
+              <Text style={styles.cancelButtonText}>{t('Cancel')}</Text>
             </TouchableOpacity>
             <TouchableOpacity
-              style={[styles.actionButton, styles.submitButton]}
+              style={[styles.actionButton, styles.submitButton, submitting && styles.submitButtonDisabled]}
               onPress={handleSubmitSale}
+              disabled={submitting}
             >
-              <Text style={styles.submitButtonText}>{t('Complete Sale')}</Text>
+              {submitting ? (
+                <ActivityIndicator color="white" size="small" />
+              ) : (
+                <Text style={styles.submitButtonText}>{t('Complete Sale')}</Text>
+              )}
             </TouchableOpacity>
           </View>
+          </KeyboardAvoidingView>
         </SafeAreaView>
       </Modal>
     </SafeAreaView>
@@ -627,7 +715,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#f5f5f5',
   },
   scrollView: {
-    paddingBottom: 100, // Extra padding for tab bar
+    paddingBottom: 20, // Base padding, additional padding added dynamically
   },
   header: {
     flexDirection: 'row',
@@ -1012,6 +1100,10 @@ const styles = StyleSheet.create({
   submitButton: {
     backgroundColor: '#4CAF50',
   },
+  submitButtonDisabled: {
+    backgroundColor: '#9E9E9E',
+    opacity: 0.7,
+  },
   submitButtonText: {
     color: 'white',
     fontWeight: '600',
@@ -1086,5 +1178,40 @@ const styles = StyleSheet.create({
     fontSize: 18,
     color: 'white',
     fontWeight: 'bold',
+  },
+  paymentStatusContainer: {
+    marginTop: 10,
+    marginBottom: 5,
+  },
+  paidBadge: {
+    backgroundColor: '#E8F5E9',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: '#4CAF50',
+  },
+  paidBadgeText: {
+    color: '#2E7D32',
+    fontWeight: '600',
+    fontSize: 14,
+  },
+  paidDateText: {
+    color: '#66BB6A',
+    fontSize: 12,
+    marginTop: 2,
+  },
+  markAsPaidButton: {
+    backgroundColor: '#FFF3E0',
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: '#FF9800',
+  },
+  markAsPaidText: {
+    color: '#E65100',
+    fontWeight: '600',
+    fontSize: 14,
   },
 });

@@ -1,18 +1,18 @@
-import React, { useState } from 'react';
-import {
-  View,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  StyleSheet,
-  Alert,
-  KeyboardAvoidingView,
-  Platform,
-  ScrollView,
-} from 'react-native';
 import { router } from 'expo-router';
-import { useAuth } from '../../contexts/AuthContext';
+import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import {
+    Alert,
+    KeyboardAvoidingView,
+    Platform,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TextInput,
+    TouchableOpacity,
+    View,
+} from 'react-native';
+import { useAuth } from '../../contexts/AuthContext';
 
 export default function LoginScreen() {
   const [username, setUsername] = useState('');
@@ -41,10 +41,6 @@ export default function LoginScreen() {
     } finally {
       setIsLoading(false);
     }
-  };
-
-  const navigateToRegister = () => {
-    router.push('/(auth)/register');
   };
 
   return (
@@ -94,12 +90,6 @@ export default function LoginScreen() {
             </Text>
           </TouchableOpacity>
 
-          <View style={styles.registerContainer}>
-            <Text style={styles.registerText}>{t('Don\'t have an account?')} </Text>
-            <TouchableOpacity onPress={navigateToRegister}>
-              <Text style={styles.registerLink}>{t('Sign Up')}</Text>
-            </TouchableOpacity>
-          </View>
         </View>
       </ScrollView>
     </KeyboardAvoidingView>
@@ -174,20 +164,6 @@ const styles = StyleSheet.create({
   buttonText: {
     color: 'white',
     fontSize: 16,
-    fontWeight: '600',
-  },
-  registerContainer: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    marginTop: 20,
-  },
-  registerText: {
-    color: '#666',
-    fontSize: 14,
-  },
-  registerLink: {
-    color: '#2196F3',
-    fontSize: 14,
     fontWeight: '600',
   },
 });

@@ -12,7 +12,7 @@ import {
   View,
 } from 'react-native';
 import { BarChart, LineChart, PieChart } from 'react-native-chart-kit';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { incomeAPI } from '../../services/api';
 import { formatPrice, getCurrencySymbol } from '../../utils/priceFormatter';
 
@@ -32,6 +32,7 @@ type Period = 'daily' | 'monthly' | 'yearly';
 
 export default function IncomeScreen() {
   const { t } = useTranslation();
+  const insets = useSafeAreaInsets();
   const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [period, setPeriod] = useState<Period>('daily');
@@ -308,7 +309,7 @@ export default function IncomeScreen() {
 
       <ScrollView
         style={styles.content}
-        contentContainerStyle={styles.scrollView}
+        contentContainerStyle={[styles.scrollView, { paddingBottom: insets.bottom + 50 }]}
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
         }
@@ -330,7 +331,7 @@ export default function IncomeScreen() {
                   period === p && styles.periodButtonTextActive,
                 ]}
               >
-                {p.charAt(0).toUpperCase() + p.slice(1)}
+                {t(p.charAt(0).toUpperCase() + p.slice(1))}
               </Text>
             </TouchableOpacity>
           ))}
@@ -401,7 +402,7 @@ export default function IncomeScreen() {
                 <ScrollView horizontal showsHorizontalScrollIndicator={false}>
                   <LineChart
                     data={lineChartData}
-                    width={Math.max(screenWidth - 40, lineChartData.labels.length * 80)}
+                    width={Math.max(screenWidth, lineChartData.labels.length * 80)}
                     height={220}
                     chartConfig={chartConfig}
                     bezier
@@ -440,7 +441,7 @@ export default function IncomeScreen() {
                 <ScrollView horizontal showsHorizontalScrollIndicator={false}>
                   <BarChart
                     data={barChartData}
-                    width={Math.max(screenWidth - 40, salesByOwner.length * 100)}
+                    width={Math.max(screenWidth, salesByOwner.length * 100)}
                     height={220}
                     chartConfig={chartConfig}
                     style={styles.chart}
@@ -459,12 +460,12 @@ export default function IncomeScreen() {
                 <Text style={styles.sectionTitle}>{t('Sales Distribution')} ({periodLabel})</Text>
                 <PieChart
                   data={pieChartData}
-                  width={screenWidth - 40}
+                  width={screenWidth}
                   height={220}
                   chartConfig={chartConfig}
                   accessor="sales"
                   backgroundColor="transparent"
-                  paddingLeft="15"
+                  paddingLeft="20"
                   absolute
                   style={styles.chart}
                 />
@@ -552,10 +553,10 @@ const styles = StyleSheet.create({
     color: '#333',
   },
   content: {
-    padding: 20,
+    // paddingVertical: 20,
   },
   scrollView: {
-    paddingBottom: 100, // Extra padding for tab bar
+    paddingBottom: 20, // Base padding, additional padding added dynamically
   },
   periodFilters: {
     flexDirection: 'row',

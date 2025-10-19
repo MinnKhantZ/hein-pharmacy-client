@@ -41,7 +41,6 @@ api.interceptors.response.use(
 // Auth API
 export const authAPI = {
   login: (credentials) => api.post('/auth/login', credentials),
-  register: (userData) => api.post('/auth/register', userData),
   validateToken: () => api.post('/auth/validate-token'),
   getProfile: () => api.get('/auth/profile'),
   updateProfile: (userData) => api.put('/auth/profile', userData),
@@ -70,6 +69,7 @@ export const salesAPI = {
   getSales: (params) => api.get('/sales', { params }),
   getSale: (id) => api.get(`/sales/${id}`),
   createSale: (saleData) => api.post('/sales', saleData),
+  markAsPaid: (id) => api.patch(`/sales/${id}/mark-paid`),
 };
 
 // Income API

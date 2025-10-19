@@ -6,6 +6,7 @@ import 'react-native-reanimated';
 import '../i18n';
 
 import { useColorScheme } from '@/hooks/use-color-scheme';
+import { useTranslation } from 'react-i18next';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { AuthProvider } from '../contexts/AuthContext';
 import { NotificationProvider } from '../contexts/NotificationContext';
@@ -19,6 +20,7 @@ export const unstable_settings = {
 
 export default function RootLayout() {
   const colorScheme = useColorScheme();
+  const { t } = useTranslation();
 
   return (
     <SafeAreaProvider>
@@ -29,8 +31,16 @@ export default function RootLayout() {
               <Stack>
                 <Stack.Screen name="(auth)" options={{ headerShown: false }} />
                 <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+                <Stack.Screen name="settings" options={{ headerShown: false }} />
+                <Stack.Screen name="profile" options={{ headerShown: false }} />
+                <Stack.Screen
+                  name="income-details"
+                  options={{
+                    title: t('All Records'),
+                    headerShown: true,
+                  }}
+                />
                 <Stack.Screen name="modal" options={{ presentation: 'modal', title: 'Modal' }} />
-                <Stack.Screen name="owner-management" options={{ headerShown: false }} />
               </Stack>
               <StatusBar style="auto" />
             </ThemeProvider>

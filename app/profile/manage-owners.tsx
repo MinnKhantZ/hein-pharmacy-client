@@ -1,21 +1,21 @@
-import { router } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
-    ActivityIndicator,
-    Alert,
-    Modal,
-    RefreshControl,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
+  ActivityIndicator,
+  Alert,
+  KeyboardAvoidingView,
+  Modal,
+  Platform,
+  RefreshControl,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { authAPI } from '../services/api';
-
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { authAPI } from '../../services/api';
 interface Owner {
   id: number;
   username: string;
@@ -26,6 +26,7 @@ interface Owner {
 
 export default function OwnerManagementScreen() {
   const { t } = useTranslation();
+  const insets = useSafeAreaInsets();
   const [owners, setOwners] = useState<Owner[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -194,75 +195,84 @@ export default function OwnerManagementScreen() {
   }
 
   return (
-    <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-          <Text style={styles.backButtonText}>← {t('Back')}</Text>
-        </TouchableOpacity>
-        <Text style={styles.title}>{t('Owner Management')}</Text>
-        <TouchableOpacity
-          style={styles.addButton}
-          onPress={() => setShowCreateModal(true)}
+    <SafeAreaView style={styles.container} edges={['top', 'left', 'right', 'bottom']}>
+      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
+        <ScrollView
+          style={styles.scrollView}
+          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />}
+          contentContainerStyle={{ paddingBottom: Math.max(insets.bottom, 20) }}
         >
-          <Text style={styles.addButtonText}>+ {t('Create Owner')}</Text>
-        </TouchableOpacity>
-      </View>
-
-      <Text style={styles.subtitle}>{t('Manage all owner accounts in the system.')}</Text>
-
-      <ScrollView
-        style={styles.scrollView}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />}
-      >
         {owners.length === 0 ? (
           <View style={styles.emptyContainer}>
             <Text style={styles.emptyText}>{t('No owners found')}</Text>
           </View>
         ) : (
           owners.map((owner) => (
-            <View key={owner.id} style={styles.ownerCard}>
-              <View style={styles.ownerInfo}>
+            <TouchableOpacity
+              key={owner.id}
+              style={styles.ownerCard}
+              onPress={() => handleEditOwner(owner)}
+            >
+              <View style={styles.ownerHeader}>
                 <Text style={styles.ownerName}>{owner.full_name}</Text>
-                <Text style={styles.ownerDetail}>@{owner.username}</Text>
-                {owner.email && <Text style={styles.ownerDetail}>{owner.email}</Text>}
-                {owner.phone && <Text style={styles.ownerDetail}>{owner.phone}</Text>}
+                <View style={styles.ownerBadge}>
+                  <Text style={styles.ownerBadgeText}>@{owner.username}</Text>
+                </View>
               </View>
+              
+              <View style={styles.ownerDetails}>
+                {owner.email && (
+                  <Text style={styles.ownerDetail}>📧 {owner.email}</Text>
+                )}
+                {owner.phone && (
+                  <Text style={styles.ownerDetail}>📱 {owner.phone}</Text>
+                )}
+              </View>
+              
               <View style={styles.ownerActions}>
                 <TouchableOpacity
-                  style={styles.editButton}
-                  onPress={() => handleEditOwner(owner)}
-                >
-                  <Text style={styles.editButtonText}>{t('Edit')}</Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={styles.passwordButton}
+                  style={styles.actionButton}
                   onPress={() => handleResetPassword(owner)}
                 >
-                  <Text style={styles.passwordButtonText}>{t('Reset Password')}</Text>
+                  <Text style={styles.actionButtonText}>🔑 {t('Reset')}</Text>
                 </TouchableOpacity>
                 <TouchableOpacity
                   style={styles.deleteButton}
                   onPress={() => handleDeleteOwner(owner)}
                 >
-                  <Text style={styles.deleteButtonText}>{t('Delete')}</Text>
+                  <Text style={styles.deleteButtonText}>🗑️ {t('Delete')}</Text>
                 </TouchableOpacity>
               </View>
-            </View>
+            </TouchableOpacity>
           ))
         )}
       </ScrollView>
+      
+      {/* Floating Action Button */}
+      <TouchableOpacity
+        style={[styles.fab, { bottom: Math.max(insets.bottom, 20) + 20 }]}
+        onPress={() => setShowCreateModal(true)}
+      >
+        <Text style={styles.fabText}>+</Text>
+      </TouchableOpacity>
+      
+      </KeyboardAvoidingView>
 
       {/* Create Owner Modal */}
       <Modal visible={showCreateModal} animationType="slide">
         <SafeAreaView style={styles.modalContainer}>
-          <View style={styles.modalHeader}>
-            <Text style={styles.modalTitle}>{t('Create New Owner Account')}</Text>
-            <TouchableOpacity onPress={() => setShowCreateModal(false)}>
-              <Text style={styles.closeButton}>✕</Text>
-            </TouchableOpacity>
-          </View>
+          <KeyboardAvoidingView 
+            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+            style={{ flex: 1 }}
+          >
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>{t('Create New Owner Account')}</Text>
+              <TouchableOpacity onPress={() => setShowCreateModal(false)}>
+                <Text style={styles.closeButton}>✕</Text>
+              </TouchableOpacity>
+            </View>
 
-          <ScrollView style={styles.modalContent}>
+            <ScrollView style={styles.modalContent}>
             <Text style={styles.infoText}>
               {t('Create a new owner account that can manage inventory and sales.')}
             </Text>
@@ -332,20 +342,25 @@ export default function OwnerManagementScreen() {
               )}
             </TouchableOpacity>
           </View>
+          </KeyboardAvoidingView>
         </SafeAreaView>
       </Modal>
 
       {/* Edit Owner Modal */}
       <Modal visible={showEditModal} animationType="slide">
         <SafeAreaView style={styles.modalContainer}>
-          <View style={styles.modalHeader}>
-            <Text style={styles.modalTitle}>{t('Edit Owner')}</Text>
-            <TouchableOpacity onPress={() => setShowEditModal(false)}>
-              <Text style={styles.closeButton}>✕</Text>
-            </TouchableOpacity>
-          </View>
+          <KeyboardAvoidingView 
+            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+            style={{ flex: 1 }}
+          >
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>{t('Edit Owner')}</Text>
+              <TouchableOpacity onPress={() => setShowEditModal(false)}>
+                <Text style={styles.closeButton}>✕</Text>
+              </TouchableOpacity>
+            </View>
 
-          <ScrollView style={styles.modalContent}>
+            <ScrollView style={styles.modalContent}>
             <Text style={styles.infoText}>
               {t('Update owner account details.')}
             </Text>
@@ -400,20 +415,25 @@ export default function OwnerManagementScreen() {
               )}
             </TouchableOpacity>
           </View>
+          </KeyboardAvoidingView>
         </SafeAreaView>
       </Modal>
 
       {/* Reset Password Modal */}
       <Modal visible={showPasswordModal} animationType="slide">
         <SafeAreaView style={styles.modalContainer}>
-          <View style={styles.modalHeader}>
-            <Text style={styles.modalTitle}>{t('Reset Password')}</Text>
-            <TouchableOpacity onPress={() => setShowPasswordModal(false)}>
-              <Text style={styles.closeButton}>✕</Text>
-            </TouchableOpacity>
-          </View>
+          <KeyboardAvoidingView 
+            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+            style={{ flex: 1 }}
+          >
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>{t('Reset Password')}</Text>
+              <TouchableOpacity onPress={() => setShowPasswordModal(false)}>
+                <Text style={styles.closeButton}>✕</Text>
+              </TouchableOpacity>
+            </View>
 
-          <ScrollView style={styles.modalContent}>
+            <ScrollView style={styles.modalContent}>
             <Text style={styles.infoText}>
               {t('Reset password for')} {selectedOwner?.full_name} (@{selectedOwner?.username})
             </Text>
@@ -451,6 +471,7 @@ export default function OwnerManagementScreen() {
               )}
             </TouchableOpacity>
           </View>
+          </KeyboardAvoidingView>
         </SafeAreaView>
       </Modal>
     </SafeAreaView>
@@ -461,45 +482,6 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#f5f5f5',
-  },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: 20,
-    paddingTop: 10,
-    backgroundColor: 'white',
-  },
-  backButton: {
-    padding: 5,
-  },
-  backButtonText: {
-    fontSize: 16,
-    color: '#2196F3',
-    fontWeight: '600',
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#333',
-  },
-  addButton: {
-    backgroundColor: '#4CAF50',
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 8,
-  },
-  addButtonText: {
-    color: 'white',
-    fontSize: 14,
-    fontWeight: '600',
-  },
-  subtitle: {
-    fontSize: 14,
-    color: '#666',
-    padding: 20,
-    paddingTop: 10,
-    backgroundColor: 'white',
   },
   scrollView: {
     flex: 1,
@@ -518,68 +500,76 @@ const styles = StyleSheet.create({
   },
   ownerCard: {
     backgroundColor: 'white',
+    margin: 10,
     padding: 15,
     borderRadius: 10,
-    marginBottom: 10,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
-    shadowRadius: 4,
+    shadowRadius: 3,
     elevation: 3,
   },
-  ownerInfo: {
-    flex: 1,
+  ownerHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 10,
   },
   ownerName: {
     fontSize: 18,
     fontWeight: 'bold',
     color: '#333',
-    marginBottom: 5,
+    flex: 1,
+  },
+  ownerBadge: {
+    backgroundColor: '#f0f0f0',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  ownerBadgeText: {
+    fontSize: 12,
+    color: '#666',
+    fontWeight: '500',
+  },
+  ownerDetails: {
+    marginBottom: 15,
   },
   ownerDetail: {
     fontSize: 14,
     color: '#666',
-    marginBottom: 2,
+    marginBottom: 4,
   },
   ownerActions: {
     flexDirection: 'row',
-    gap: 8,
+    justifyContent: 'flex-end',
+    gap: 10,
   },
-  editButton: {
-    backgroundColor: '#2196F3',
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 5,
-  },
-  editButtonText: {
-    color: 'white',
-    fontWeight: '600',
-    fontSize: 12,
-  },
-  passwordButton: {
+  actionButton: {
     backgroundColor: '#FF9800',
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 5,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 8,
+    minWidth: 80,
   },
-  passwordButtonText: {
+  actionButtonText: {
     color: 'white',
     fontWeight: '600',
-    fontSize: 12,
+    fontSize: 14,
+    textAlign: 'center',
   },
   deleteButton: {
     backgroundColor: '#f44336',
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 5,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 8,
+    minWidth: 80,
   },
   deleteButtonText: {
     color: 'white',
     fontWeight: '600',
-    fontSize: 12,
+    fontSize: 14,
+    textAlign: 'center',
   },
   modalContainer: {
     flex: 1,
@@ -670,5 +660,28 @@ const styles = StyleSheet.create({
     color: 'white',
     fontSize: 16,
     fontWeight: '600',
+  },
+  fab: {
+    position: 'absolute',
+    right: 20,
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: '#4CAF50',
+    justifyContent: 'center',
+    alignItems: 'center',
+    elevation: 8,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+  },
+  fabText: {
+    color: 'white',
+    fontSize: 24,
+    fontWeight: 'bold',
   },
 });

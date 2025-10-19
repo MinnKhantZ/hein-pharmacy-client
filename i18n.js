@@ -1,6 +1,30 @@
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Localization from 'expo-localization';
 import i18n from 'i18next';
 import { initReactI18next } from 'react-i18next';
+
+// Get stored language or fallback to device language
+const getInitialLanguage = async () => {
+  try {
+    const storedLanguage = await AsyncStorage.getItem('userLanguage');
+    if (storedLanguage) {
+      return storedLanguage;
+    }
+  } catch (error) {
+    console.error('Error getting stored language:', error);
+  }
+  return Localization.getLocales()[0]?.languageCode || 'en';
+};
+
+// Function to change language and persist it
+export const changeLanguage = async (language) => {
+  try {
+    await AsyncStorage.setItem('userLanguage', language);
+    await i18n.changeLanguage(language);
+  } catch (error) {
+    console.error('Error changing language:', error);
+  }
+};
 
 // Translation resources
 const resources = {
@@ -9,7 +33,6 @@ const resources = {
       // Common
       "Welcome": "Welcome",
       "Login": "Login",
-      "Register": "Register",
       "Logout": "Logout",
       "Save": "Save",
       "Cancel": "Cancel",
@@ -39,9 +62,7 @@ const resources = {
       "Login to your account": "Login to your account",
       "Create new account": "Create new account",
       "Sign In": "Sign In",
-      "Sign Up": "Sign Up",
       "Signing In...": "Signing In...",
-      "Don't have an account?": "Don't have an account?",
       "Enter your username": "Enter your username",
       "Enter your password": "Enter your password",
       "Please fill in all fields": "Please fill in all fields",
@@ -80,6 +101,15 @@ const resources = {
       "Filter by Owner": "Filter by Owner",
       "Filter by Category": "Filter by Category",
       "Clear Filters": "Clear Filters",
+      "Show Filters": "Show Filters",
+      "Hide Filters": "Hide Filters",
+      "Sort by": "Sort by",
+      "Name (A-Z)": "Name (A-Z)",
+      "Stock (Low to High)": "Stock (Low to High)",
+      "Stock (High to Low)": "Stock (High to Low)",
+      "Price (Low to High)": "Price (Low to High)",
+      "Price (High to Low)": "Price (High to Low)",
+      "Recently Added": "Recently Added",
       "No items found": "No items found",
       "Low Stock": "Low Stock",
       "Qty:": "Qty:",
@@ -100,10 +130,11 @@ const resources = {
       "Owner": "Owner",
       "Save Item": "Save Item",
       "Please fill in all required fields": "Please fill in all required fields",
-      "Please select an owner": "ပိုင်ရှင်ရွေးချယ်ပါ",
-      "Select Owner": "ပိုင်ရှင်ရွေးချယ်ပါ",
-      "All Owners": "ပိုင်ရှင်အားလုံး",
-      "All Categories": "အမျိုးအစားအားလုံး",
+      "Please select an owner": "Please select an owner",
+      "Select Owner": "Select Owner",
+      "Select existing category": "Select existing category",
+      "All Owners": "All Owners",
+      "All Categories": "All Categories",
 
       // Sales
       "Item updated successfully": "Item updated successfully",
@@ -139,8 +170,16 @@ const resources = {
       "Total:": "Total:",
       "Customer Information (Optional)": "Customer Information (Optional)",
       "Mobile": "Mobile Wallet",
+      "Credit": "Credit",
+      "Mark as Paid": "Mark as Paid",
+      "Paid": "Paid",
+      "Paid on:": "Paid on:",
+      "Are you sure you want to mark this sale as paid? This will add it to the income for the original sale date.": "Are you sure you want to mark this sale as paid? This will add it to the income for the original sale date.",
+      "Sale marked as paid successfully": "Sale marked as paid successfully",
+      "Failed to mark sale as paid": "Failed to mark sale as paid",
       "Search & Add Items": "Search & Add Items",
       "Search inventory by name or category...": "Search inventory by name or category...",
+      "Search by customer name, phone, or item...": "Search by customer name, phone, or item...",
       "+ New Sale": "+ New Sale",
       "No sales records yet": "No sales records yet",
       "Record your first sale by clicking the \"New Sale\" button above": "Record your first sale by clicking the \"New Sale\" button above",
@@ -153,6 +192,12 @@ const resources = {
       "Please add items to the sale": "Please add items to the sale",
       "Sale recorded successfully": "Sale recorded successfully",
       "Failed to record sale": "Failed to record sale",
+
+      // Sales Filters
+      "Sort by:": "Sort by:",
+      "Date": "Date",
+      "Amount": "Amount",
+      "Customer": "Customer",
 
       // Income
       "Total Income": "Total Income",
@@ -172,6 +217,11 @@ const resources = {
       "No income data available": "No income data available",
       "View All Records": "View All Records",
       "All Records": "All Records",
+
+      // Income Periods
+      "Daily": "Daily",
+      "Monthly": "Monthly",
+      "Yearly": "Yearly",
 
       // Settings
       "Settings": "Settings",
@@ -262,6 +312,12 @@ const resources = {
       "Password reset successfully": "Password reset successfully",
       "Failed to reset password": "Failed to reset password",
 
+      // SearchableDropdown
+      "No matching options": "No matching options",
+      "Type to add a new category": "Type to add a new category",
+      "No options available": "No options available",
+      "Add as new option": "Add as new option",
+
       // Currency
       "currency": "Ks",
       "currencySymbol": "Ks"
@@ -272,7 +328,6 @@ const resources = {
       // Common
       "Welcome": "ကြိုဆိုပါသည်",
       "Login": "ဝင်ရောက်မည်",
-      "Register": "စာရင်းသွင်းမည်",
       "Logout": "ထွက်မည်",
       "Save": "သိမ်းမည်",
       "Cancel": "ပယ်ဖျက်မည်",
@@ -302,9 +357,7 @@ const resources = {
       "Login to your account": "သင့်အကောင့်သို့ဝင်ရောက်ပါ",
       "Create new account": "အကောင့်အသစ်ဖန်တီးပါ",
       "Sign In": "ဝင်ရောက်မည်",
-      "Sign Up": "စာရင်းသွင်းမည်",
       "Signing In...": "ဝင်ရောက်နေသည်...",
-      "Don't have an account?": "အကောင့်မရှိသေးပါက",
       "Enter your username": "သင့်အသုံးပြုသူအမည်ထည့်ပါ",
       "Enter your password": "သင့်စကားဝှက်ထည့်ပါ",
       "Please fill in all fields": "အချက်အလက်အားလုံးဖြည့်စွက်ပါ",
@@ -354,6 +407,15 @@ const resources = {
       "Filter by Owner": "ပိုင်ရှင်အလိုက်စစ်ထုတ်မည်",
       "Filter by Category": "အမျိုးအစားအလိုက်စစ်ထုတ်မည်",
       "Clear Filters": "စစ်ထုတ်မှုများရှင်းလင်းမည်",
+      "Show Filters": "စစ်ထုတ်မှုများပြမည်",
+      "Hide Filters": "စစ်ထုတ်မှုများဖျောက်မည်",
+      "Sort by": "စီစဉ်ရန်",
+      "Name (A-Z)": "အမည် (က-အ)",
+      "Stock (Low to High)": "လက်ကျန် (နည်းမှများသို့)",
+      "Stock (High to Low)": "လက်ကျန် (များမှနည်းသို့)",
+      "Price (Low to High)": "ဈေးနှုန်း (နည်းမှများသို့)",
+      "Price (High to Low)": "ဈေးနှုန်း (များမှနည်းသို့)",
+      "Recently Added": "လတ်တလောထည့်သည်",
       "No items found": "ပစ္စည်းများမတွေ့ရှိပါ",
       "Low Stock": "လက်ကျန်နည်းသည်",
       "Qty:": "အရေအတွက်:",
@@ -375,6 +437,14 @@ const resources = {
       "Save Item": "ပစ္စည်းသိမ်းဆည်းမည်",
       "Please fill in all required fields": "လိုအပ်သောအချက်အလက်များအားလုံးဖြည့်စွက်ပါ",
       "Please select an owner": "ပိုင်ရှင်ရွေးချယ်ပါ",
+      "Select Owner": "ပိုင်ရှင်ရွေးချယ်ပါ",
+      "Select existing category": "ရှိပြီးသားအမျိုးအစားရွေးချယ်ပါ",
+      "All Owners": "ပိုင်ရှင်အားလုံး",
+      "All Categories": "အမျိုးအစားအားလုံး",
+
+      // Sales
+      "Item updated successfully": "ပစ္စည်းပြင်ဆင်ခြင်းအောင်မြင်သည်",
+      "Item added successfully": "ပစ္စည်းထည့်ခြင်းအောင်မြင်သည်",
       "New Sale": "ရောင်းအားအသစ်",
       "Customer Name": "ဝယ်သူအမည်",
       "Customer Phone": "ဝယ်သူဖုန်း",
@@ -392,9 +462,17 @@ const resources = {
       "No items in cart": "ဈေးခြင်းတောင်းတွင် ပစ္စည်းများမရှိပါ",
       "Total:": "စုစုပေါင်း:",
       "Customer Information (Optional)": "ဝယ်သူအချက်အလက် (မဖြစ်မနေ မလိုအပ်ပါ)",
-      "Mobile": "မိုဘိုင်းဝေလစ်",
+      "Mobile": "မိုဘိုင်းဝေလ်လက်",
+      "Credit": "အကြွေး",
+      "Mark as Paid": "ပေးပြီးဟု မှတ်မည်",
+      "Paid": "ပေးပြီး",
+      "Paid on:": "ပေးသည့်ရက်:",
+      "Are you sure you want to mark this sale as paid? This will add it to the income for the original sale date.": "ဤရောင်းအားကို ပေးပြီးဟု မှတ်လိုသည်မှာ သေချာပါသလား? ၎င်းသည် မူလရောင်းချသည့်ရက်စွဲအတွက် ဝင်ငွေတွင် ထည့်သွင်းမည်ဖြစ်သည်။",
+      "Sale marked as paid successfully": "ရောင်းအားကို ပေးပြီးဟု မှတ်ခြင်းအောင်မြင်သည်",
+      "Failed to mark sale as paid": "ရောင်းအားကို ပေးပြီးဟု မှတ်ခြင်းမအောင်မြင်ပါ",
       "Search & Add Items": "ရှာဖွေပြီး ပစ္စည်းထည့်မည်",
       "Search inventory by name or category...": "အမည် သို့မဟုတ် အမျိုးအစားအလိုက် စာရင်းရှာဖွေရန်...",
+      "Search by customer name, phone, or item...": "ဝယ်သူအမည်၊ ဖုန်း၊ ပစ္စည်း ရှာဖွေရန်...",
       "+ New Sale": "+ ရောင်းအားအသစ်",
       "No sales records yet": "ရောင်းအားမှတ်တမ်းများမရှိသေးပါ",
       "Record your first sale by clicking the \"New Sale\" button above": "အထက်ရှိ \"ရောင်းအားအသစ်\" ခလုတ်ကို နှိပ်ပြီး သင့်ပထမဆုံး ရောင်းအားကို မှတ်တမ်းတင်ပါ",
@@ -407,6 +485,12 @@ const resources = {
       "Please add items to the sale": "ရောင်းအားသို့ ပစ္စည်းများထည့်ပါ",
       "Sale recorded successfully": "ရောင်းအားမှတ်တမ်းတင်ခြင်းအောင်မြင်သည်",
       "Failed to record sale": "ရောင်းအားမှတ်တမ်းတင်ခြင်းမအောင်မြင်ပါ",
+
+      // Sales Filters
+      "Sort by:": "စီစဉ်ရန်:",
+      "Date": "ရက်စွဲ",
+      "Amount": "ပမာဏ",
+      "Customer": "ဝယ်သူ",
 
       // Income
       "Total Income": "စုစုပေါင်းဝင်ငွေ",
@@ -426,6 +510,11 @@ const resources = {
       "No income data available": "ဝင်ငွေအချက်အလက်မရှိပါ",
       "View All Records": "မှတ်တမ်းအားလုံးကြည့်မည်",
       "All Records": "မှတ်တမ်းအားလုံး",
+
+      // Income Periods
+      "Daily": "နေ့စဉ်",
+      "Monthly": "လအလိုက်",
+      "Yearly": "နှစ်အလိုက်",
 
       // Settings
       "Settings": "ဆက်တင်များ",
@@ -498,7 +587,7 @@ const resources = {
       "Profile updated successfully": "ပရိုဖိုင်အပ်ဒိတ်လုပ်ခြင်းအောင်မြင်သည်",
       "Failed to update profile": "ပရိုဖိုင်အပ်ဒိတ်လုပ်ခြင်းမအောင်မြင်ပါ",
       "English": "အင်္ဂလိပ်",
-      "Burmese": "ဗမာ",
+      "Burmese": "မြန်မာ",
       "Create a new owner account that can manage inventory and sales.": "စာရင်းနှင့် ရောင်းအားကို စီမံနိုင်သော ပိုင်ရှင်အကောင့်အသစ်ဖန်တီးပါ။",
       "Manage all owner accounts in the system.": "စနစ်တွင်းရှိ ပိုင်ရှင်အကောင့်များအားလုံးကို စီမံပါ။",
       "No owners found": "ပိုင်ရှင်များမတွေ့ပါ",
@@ -506,6 +595,21 @@ const resources = {
       "Owner deleted successfully": "ပိုင်ရှင်ဖျက်ခြင်းအောင်မြင်သည်",
       "Failed to delete owner": "ပိုင်ရှင်ဖျက်ခြင်းမအောင်မြင်ပါ",
       "Delete Owner": "ပိုင်ရှင်ဖျက်မည်",
+      "Edit Owner": "ပိုင်ရှင်ပြင်ဆင်မည်",
+      "Update owner account details.": "ပိုင်ရှင်အကောင့်အသေးစိတ်များကို အပ်ဒိတ်လုပ်ပါ။",
+      "Save Changes": "အပြောင်းအလဲများသိမ်းမည်",
+      "Owner updated successfully": "ပိုင်ရှင်အပ်ဒိတ်လုပ်ခြင်းအောင်မြင်သည်",
+      "Failed to update owner": "ပိုင်ရှင်အပ်ဒိတ်လုပ်ခြင်းမအောင်မြင်ပါ",
+      "Reset Password": "စကားဝှက်ပြန်လည်သတ်မှတ်မည်",
+      "Reset password for": "အတွက်စကားဝှက်ပြန်လည်သတ်မှတ်မည်",
+      "Password reset successfully": "စကားဝှက်ပြန်လည်သတ်မှတ်ခြင်းအောင်မြင်သည်",
+      "Failed to reset password": "စကားဝှက်ပြန်လည်သတ်မှတ်ခြင်းမအောင်မြင်ပါ",
+
+      // SearchableDropdown
+      "No matching options": "ကိုက်ညီသောရွေးချယ်စရာများမရှိပါ",
+      "Type to add a new category": "အမျိုးအစားအသစ်ထည့်ရန် ရိုက်ထည့်ပါ",
+      "No options available": "ရွေးချယ်စရာများမရှိပါ",
+      "Add as new option": "ရွေးချယ်စရာအသစ်အဖြစ်ထည့်မည်",
 
       // Currency
       "currency": "ကျပ်",
@@ -514,15 +618,23 @@ const resources = {
   }
 };
 
-i18n
-  .use(initReactI18next)
-  .init({
-    resources,
-    lng: Localization.getLocales()[0]?.languageCode || 'en', // Use device language, fallback to 'en'
-    fallbackLng: 'en',
-    interpolation: {
-      escapeValue: false,
-    },
-  });
+// Initialize i18n with persisted language
+const initializeI18n = async () => {
+  const initialLanguage = await getInitialLanguage();
+  
+  i18n
+    .use(initReactI18next)
+    .init({
+      resources,
+      lng: initialLanguage,
+      fallbackLng: 'en',
+      interpolation: {
+        escapeValue: false,
+      },
+    });
+};
+
+// Initialize immediately
+initializeI18n();
 
 export default i18n;

@@ -1,16 +1,16 @@
+import DateTimePicker from '@react-native-community/datetimepicker';
 import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
-    ActivityIndicator,
-    Alert,
-    Modal,
-    ScrollView,
-    StyleSheet,
-    Switch,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
+  ActivityIndicator,
+  Alert,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  Switch,
+  Text,
+  TouchableOpacity,
+  View,
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNotifications } from '../../contexts/NotificationContext';
@@ -33,9 +33,22 @@ export default function NotificationsScreen() {
   });
 
   const [showTimePicker, setShowTimePicker] = useState(false);
-  const [tempHour, setTempHour] = useState('09');
-  const [tempMinute, setTempMinute] = useState('00');
   const [saving, setSaving] = useState(false);
+
+  // Helper function to convert HH:MM string to Date object for picker
+  const timeStringToDate = (timeString: string): Date => {
+    const [hours, minutes] = timeString.split(':').map(Number);
+    const date = new Date();
+    date.setHours(hours, minutes, 0);
+    return date;
+  };
+
+  // Helper function to convert Date object to HH:MM string
+  const dateToTimeString = (date: Date): string => {
+    const hours = date.getHours().toString().padStart(2, '0');
+    const minutes = date.getMinutes().toString().padStart(2, '0');
+    return `${hours}:${minutes}`;
+  };
 
   // Load notification settings from context when component mounts
   useEffect(() => {
@@ -83,38 +96,41 @@ export default function NotificationsScreen() {
     }
   };
 
-  // Handler to update low stock alert time
-  const handleTimeChange = async () => {
-    // Validate inputs
-    const hours = parseInt(tempHour) || 0;
-    const minutes = parseInt(tempMinute) || 0;
-
-    if (hours < 0 || hours > 23) {
-      Alert.alert(t('Error'), t('Hour must be between 0 and 23'));
-      return;
+  // Handle native time picker change
+  const handleDateTimePickerChange = (event: any, selectedDate?: Date) => {
+    if (Platform.OS === 'android') {
+      setShowTimePicker(false);
     }
 
-    if (minutes < 0 || minutes > 59) {
-      Alert.alert(t('Error'), t('Minute must be between 0 and 59'));
-      return;
+    if (selectedDate) {
+      const timeString = dateToTimeString(selectedDate);
+
+      // Update temp notification settings with new time
+      setTempNotificationSettings({
+        ...tempNotificationSettings,
+        lowStockAlertTime: timeString,
+      });
+
+      if (Platform.OS === 'android') {
+        // On Android, close picker after selection
+        setShowTimePicker(false);
+      }
     }
+  };
 
-    const timeString = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
-
-    // Update temp notification settings with new time
-    setTempNotificationSettings({
-      ...tempNotificationSettings,
-      lowStockAlertTime: timeString,
+  // Format time for display in 12-hour AM/PM format
+  const formatTimeForDisplay = (timeString: string): string => {
+    const [hours, minutes] = timeString.split(':').map(Number);
+    const date = new Date();
+    date.setHours(hours, minutes);
+    return date.toLocaleTimeString('en-US', {
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: true,
     });
-
-    setShowTimePicker(false);
   };
 
   const openTimePicker = () => {
-    const currentTime = tempNotificationSettings.lowStockAlertTime || '09:00';
-    const [hour, minute] = currentTime.split(':');
-    setTempHour(hour);
-    setTempMinute(minute);
     setShowTimePicker(true);
   };
 
@@ -143,7 +159,7 @@ export default function NotificationsScreen() {
               <Text style={styles.timePickerLabel}>{t('Alert Time')}</Text>
               <TouchableOpacity style={styles.timePickerButton} onPress={openTimePicker}>
                 <Text style={styles.timePickerText}>
-                  {tempNotificationSettings.lowStockAlertTime || '09:00'}
+                  {formatTimeForDisplay(tempNotificationSettings.lowStockAlertTime || '09:00')}
                 </Text>
                 <Text style={styles.timePickerIcon}>🕐</Text>
               </TouchableOpacity>
@@ -182,59 +198,16 @@ export default function NotificationsScreen() {
         </TouchableOpacity>
       </View>
 
-      {/* Time Picker Modal */}
-      <Modal visible={showTimePicker} animationType="slide" transparent>
-        <View style={styles.timePickerModalOverlay}>
-          <View style={styles.timePickerModal}>
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>{t('Set Alert Time')}</Text>
-              <TouchableOpacity onPress={() => setShowTimePicker(false)}>
-                <Text style={styles.closeButton}>✕</Text>
-              </TouchableOpacity>
-            </View>
-
-            <View style={styles.timePickerInputContainer}>
-              <View>
-                <Text style={styles.timeInputLabel}>{t('Hour')} (00-23)</Text>
-                <TextInput
-                  style={styles.timeInput}
-                  keyboardType="number-pad"
-                  maxLength={2}
-                  placeholder="09"
-                  value={tempHour}
-                  onChangeText={(text) => setTempHour(text)}
-                />
-              </View>
-
-              <Text style={styles.timeInputSeparator}>:</Text>
-
-              <View>
-                <Text style={styles.timeInputLabel}>{t('Minute')} (00-59)</Text>
-                <TextInput
-                  style={styles.timeInput}
-                  keyboardType="number-pad"
-                  maxLength={2}
-                  placeholder="00"
-                  value={tempMinute}
-                  onChangeText={(text) => setTempMinute(text)}
-                />
-              </View>
-            </View>
-
-            <View style={styles.modalActions}>
-              <TouchableOpacity
-                style={[styles.modalButton, styles.cancelButton, { flex: 1, marginRight: 10 }]}
-                onPress={() => setShowTimePicker(false)}
-              >
-                <Text style={styles.cancelButtonText}>{t('Cancel')}</Text>
-              </TouchableOpacity>
-              <TouchableOpacity style={[styles.modalButton, styles.saveButton, { flex: 1 }]} onPress={handleTimeChange}>
-                <Text style={styles.saveButtonText}>{t('Done')}</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        </View>
-      </Modal>
+      {/* Native Time Picker */}
+      {showTimePicker && (
+        <DateTimePicker
+          value={timeStringToDate(tempNotificationSettings.lowStockAlertTime || '09:00')}
+          mode="time"
+          display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+          onChange={handleDateTimePickerChange}
+          is24Hour={false}
+        />
+      )}
     </SafeAreaView>
   );
 }
@@ -344,74 +317,5 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 16,
     fontWeight: '600',
-  },
-  timePickerModalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  timePickerModal: {
-    backgroundColor: '#fff',
-    borderRadius: 12,
-    width: '80%',
-    maxWidth: 400,
-  },
-  modalHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: 20,
-    borderBottomWidth: 1,
-    borderBottomColor: '#e0e0e0',
-  },
-  modalTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#333',
-  },
-  closeButton: {
-    fontSize: 24,
-    color: '#666',
-    padding: 4,
-  },
-  timePickerInputContainer: {
-    padding: 20,
-    flexDirection: 'row',
-    alignItems: 'flex-end',
-    justifyContent: 'center',
-  },
-  timeInputLabel: {
-    fontSize: 14,
-    color: '#666',
-    marginBottom: 8,
-    textAlign: 'center',
-  },
-  timeInput: {
-    borderWidth: 1,
-    borderColor: '#ddd',
-    borderRadius: 8,
-    padding: 12,
-    fontSize: 18,
-    textAlign: 'center',
-    width: 60,
-    marginHorizontal: 8,
-  },
-  timeInputSeparator: {
-    fontSize: 24,
-    color: '#333',
-    marginHorizontal: 8,
-    marginBottom: 4,
-  },
-  modalActions: {
-    flexDirection: 'row',
-    padding: 20,
-    borderTopWidth: 1,
-    borderTopColor: '#e0e0e0',
-  },
-  modalButton: {
-    paddingVertical: 12,
-    borderRadius: 8,
-    alignItems: 'center',
   },
 });

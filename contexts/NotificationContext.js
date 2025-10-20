@@ -138,32 +138,12 @@ export function NotificationProvider({ children }) {
     }
   };
 
-  const sendLowStockAlert = async (itemName, currentStock, minStock) => {
-    if (!notificationSettings.lowStockAlerts) {
-      return;
-    }
-    return await notificationService.sendLowStockAlert(itemName, currentStock, minStock);
-  };
-
-  const sendDailySalesNotification = async (totalSales, totalIncome, itemCount) => {
-    if (!notificationSettings.salesNotifications) {
-      return;
-    }
-    return await notificationService.sendDailySalesNotification(
-      totalSales,
-      totalIncome,
-      itemCount
-    );
-  };
-
   const value = {
     expoPushToken,
     notificationSettings,
     permissionStatus,
     updateSettings,
     requestPermissions,
-    sendLowStockAlert,
-    sendDailySalesNotification,
   };
 
   return (

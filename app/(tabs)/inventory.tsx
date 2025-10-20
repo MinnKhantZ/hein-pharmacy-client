@@ -2,25 +2,26 @@ import { useLocalSearchParams } from 'expo-router';
 import React, { useContext, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
-  ActivityIndicator,
-  Alert,
-  FlatList,
-  KeyboardAvoidingView,
-  Modal,
-  Platform,
-  RefreshControl,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View,
+    ActivityIndicator,
+    Alert,
+    FlatList,
+    KeyboardAvoidingView,
+    Modal,
+    Platform,
+    RefreshControl,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TextInput,
+    TouchableOpacity,
+    View,
 } from 'react-native';
 import RNPickerSelect from 'react-native-picker-select';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import OwnerSelector from '../../components/OwnerSelector';
 import SearchableDropdown from '../../components/SearchableDropdown';
 import { AuthContext } from '../../contexts/AuthContext';
+import { useThemeColor } from '../../hooks/use-theme-color';
 import { authAPI, inventoryAPI } from '../../services/api';
 import { formatPrice } from '../../utils/priceFormatter';
 
@@ -47,6 +48,7 @@ export default function InventoryScreen() {
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const { user } = useContext(AuthContext) as { user: { username: string; id: number } | null };
   const { t } = useTranslation();
+  const placeholderTextColor = useThemeColor({}, 'placeholder');
   const params = useLocalSearchParams<{ openModal?: string }>();
   const insets = useSafeAreaInsets();
   const [filteredItems, setFilteredItems] = useState<InventoryItem[]>([]);
@@ -315,6 +317,7 @@ export default function InventoryScreen() {
           placeholder={t('Search items...')}
           value={searchQuery}
           onChangeText={setSearchQuery}
+          placeholderTextColor={placeholderTextColor}
         />
         <TouchableOpacity
           style={styles.filterButton}
@@ -492,6 +495,7 @@ export default function InventoryScreen() {
                 placeholder={t('Item Name *')}
                 value={formData.name}
                 onChangeText={(text) => setFormData({ ...formData, name: text })}
+                placeholderTextColor={placeholderTextColor}
               />
               
               <SearchableDropdown
@@ -509,6 +513,7 @@ export default function InventoryScreen() {
                 placeholder={t('Description')}
                 value={formData.description}
                 onChangeText={(text) => setFormData({ ...formData, description: text })}
+                placeholderTextColor={placeholderTextColor}
                 multiline
                 numberOfLines={3}
               />
@@ -517,6 +522,7 @@ export default function InventoryScreen() {
                 placeholder={t('Quantity *')}
                 value={formData.quantity}
                 onChangeText={(text) => setFormData({ ...formData, quantity: text })}
+                placeholderTextColor={placeholderTextColor}
                 keyboardType="numeric"
               />
               <TextInput
@@ -524,6 +530,7 @@ export default function InventoryScreen() {
                 placeholder={t('Unit Price *')}
                 value={formData.unit_price}
                 onChangeText={(text) => setFormData({ ...formData, unit_price: text })}
+                placeholderTextColor={placeholderTextColor}
                 keyboardType="decimal-pad"
               />
               <TextInput
@@ -531,6 +538,7 @@ export default function InventoryScreen() {
                 placeholder={t('Selling Price *')}
                 value={formData.selling_price}
                 onChangeText={(text) => setFormData({ ...formData, selling_price: text })}
+                placeholderTextColor={placeholderTextColor}
                 keyboardType="decimal-pad"
               />
               <TextInput
@@ -538,6 +546,7 @@ export default function InventoryScreen() {
                 placeholder={t('Minimum Stock')}
                 value={formData.minimum_stock}
                 onChangeText={(text) => setFormData({ ...formData, minimum_stock: text })}
+                placeholderTextColor={placeholderTextColor}
                 keyboardType="numeric"
               />
             </ScrollView>

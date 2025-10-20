@@ -1,4 +1,4 @@
-import { useLocalSearchParams } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
@@ -18,6 +18,7 @@ import {
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNotifications } from '../../contexts/NotificationContext';
+import { useThemeColor } from '../../hooks/use-theme-color';
 import { inventoryAPI, salesAPI } from '../../services/api';
 import { formatPrice } from '../../utils/priceFormatter';
 
@@ -63,9 +64,11 @@ interface SaleRecord {
 
 export default function SalesScreen() {
   const { t } = useTranslation();
+  const placeholderTextColor = useThemeColor({}, 'placeholder');
   const { expoPushToken } = useNotifications();
   const insets = useSafeAreaInsets();
   const params = useLocalSearchParams<{ openModal?: string }>();
+  const router = useRouter();
   const [showSaleModal, setShowSaleModal] = useState(false);
   const [inventoryItems, setInventoryItems] = useState<InventoryItem[]>([]);
   const [saleItems, setSaleItems] = useState<SaleItem[]>([]);
@@ -357,6 +360,7 @@ export default function SalesScreen() {
           placeholder={t('Search by customer name, phone, or item...')}
           value={salesSearch}
           onChangeText={setSalesSearch}
+          placeholderTextColor={placeholderTextColor}
           autoCapitalize="none"
         />
         <TouchableOpacity
@@ -443,7 +447,10 @@ export default function SalesScreen() {
         <FlatList
           data={salesHistory}
           renderItem={({ item: sale }) => (
-            <View style={styles.saleCard}>
+            <TouchableOpacity 
+              style={styles.saleCard}
+              onPress={() => router.push({ pathname: '/sales-details/[id]', params: { id: sale.id } })}
+            >
               <View style={styles.saleHeader}>
                 <Text style={styles.saleId}>{t('Sale #')}{sale.id}</Text>
                 <Text style={styles.saleAmount}>{formatPrice(Number(sale.total_amount))}</Text>
@@ -476,7 +483,9 @@ export default function SalesScreen() {
                   ) : (
                     <TouchableOpacity
                       style={styles.markAsPaidButton}
-                      onPress={() => handleMarkAsPaid(sale.id)}
+                      onPress={() => {
+                        handleMarkAsPaid(sale.id);
+                      }}
                     >
                       <Text style={styles.markAsPaidText}>☐ {t('Mark as Paid')}</Text>
                     </TouchableOpacity>
@@ -485,20 +494,34 @@ export default function SalesScreen() {
               )}
               
               <View style={styles.saleItemsList}>
-                <Text style={styles.itemsTitle}>{t('Items:')}</Text>
-                {sale.items.map((item) => (
+                <Text style={styles.itemsTitle}>
+                  {t('Items:')} ({sale.items.length})
+                </Text>
+                {sale.items.slice(0, 2).map((item) => (
                   <View key={item.id} style={styles.saleItemRow}>
-                    <Text style={styles.saleItemName}>
+                    <Text style={styles.saleItemName} numberOfLines={1}>
                       {item.item_name} × {item.quantity}
                     </Text>
                     <Text style={styles.saleItemPrice}>{formatPrice(Number(item.total_price))}</Text>
                   </View>
                 ))}
+                {sale.items.length > 2 && (
+                  <View style={styles.moreItemsRow}>
+                    <Text style={styles.moreItemsText}>
+                      + {sale.items.length - 2} {t('more item')}
+                      {sale.items.length - 2 !== 1 ? 's' : ''}
+                    </Text>
+                  </View>
+                )}
               </View>
               {sale.notes && (
-                <Text style={styles.saleNotes}>{t('Note:')} {sale.notes}</Text>
+                <Text style={styles.saleNotes} numberOfLines={2}>{t('Note:')} {sale.notes}</Text>
               )}
-            </View>
+              
+              <View style={styles.viewDetailsFooter}>
+                <Text style={styles.viewDetailsText}>{t('Tap to view details')} →</Text>
+              </View>
+            </TouchableOpacity>
           )}
           keyExtractor={(item) => item.id.toString()}
           ListEmptyComponent={
@@ -545,10 +568,11 @@ export default function SalesScreen() {
                 placeholder={t('Search inventory by name or category...')}
                 value={searchQuery}
                 onChangeText={setSearchQuery}
+                placeholderTextColor={placeholderTextColor}
                 autoCapitalize="none"
               />
               {searchQuery.trim() ? (
-                <ScrollView style={styles.inventoryList} nestedScrollEnabled>
+                <ScrollView style={styles.inventoryList} nestedScrollEnabled keyboardShouldPersistTaps="handled">
                   {loading ? (
                     <ActivityIndicator size="large" color="#2196F3" style={{ marginTop: 20 }} />
                   ) : inventoryItems.length === 0 ? (
@@ -642,12 +666,14 @@ export default function SalesScreen() {
                 placeholder={t('Customer Name')}
                 value={customerName}
                 onChangeText={setCustomerName}
+                placeholderTextColor={placeholderTextColor}
               />
               <TextInput
                 style={styles.input}
                 placeholder={t('Customer Phone')}
                 value={customerPhone}
                 onChangeText={setCustomerPhone}
+                placeholderTextColor={placeholderTextColor}
                 keyboardType="phone-pad"
               />
               <View style={styles.paymentMethods}>
@@ -676,6 +702,7 @@ export default function SalesScreen() {
                 placeholder={t('Notes')}
                 value={notes}
                 onChangeText={setNotes}
+                placeholderTextColor={placeholderTextColor}
                 multiline
                 numberOfLines={3}
               />
@@ -843,6 +870,28 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     borderTopColor: '#f0f0f0',
     paddingTop: 8,
+  },
+  moreItemsRow: {
+    paddingVertical: 6,
+    paddingHorizontal: 8,
+  },
+  moreItemsText: {
+    fontSize: 13,
+    color: '#2196F3',
+    fontStyle: 'italic',
+    fontWeight: '600',
+  },
+  viewDetailsFooter: {
+    marginTop: 10,
+    paddingTop: 10,
+    borderTopWidth: 1,
+    borderTopColor: '#f0f0f0',
+    alignItems: 'center',
+  },
+  viewDetailsText: {
+    fontSize: 13,
+    color: '#2196F3',
+    fontWeight: '600',
   },
   modalContainer: {
     flex: 1,

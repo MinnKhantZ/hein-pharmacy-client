@@ -2,17 +2,18 @@ import { router } from 'expo-router';
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
-    Alert,
-    KeyboardAvoidingView,
-    Platform,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
+  Alert,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from 'react-native';
 import { useAuth } from '../../contexts/AuthContext';
+import { useThemeColor } from '../../hooks/use-theme-color';
 
 export default function LoginScreen() {
   const [username, setUsername] = useState('');
@@ -20,6 +21,7 @@ export default function LoginScreen() {
   const [isLoading, setIsLoading] = useState(false);
   const { login } = useAuth();
   const { t } = useTranslation();
+  const placeholderTextColor = useThemeColor({}, 'placeholder');
 
   const handleLogin = async () => {
     if (!username.trim() || !password.trim()) {
@@ -48,7 +50,7 @@ export default function LoginScreen() {
       style={styles.container} 
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
-      <ScrollView contentContainerStyle={styles.scrollContainer}>
+      <ScrollView contentContainerStyle={styles.scrollContainer} keyboardShouldPersistTaps="handled">
         <View style={styles.headerContainer}>
           <Text style={styles.title}>Hein Pharmacy</Text>
           <Text style={styles.subtitle}>Inventory & Income Manager</Text>
@@ -62,6 +64,7 @@ export default function LoginScreen() {
               value={username}
               onChangeText={setUsername}
               placeholder={t('Enter your username')}
+              placeholderTextColor={placeholderTextColor}
               autoCapitalize="none"
               autoCorrect={false}
             />
@@ -70,10 +73,11 @@ export default function LoginScreen() {
           <View style={styles.inputContainer}>
             <Text style={styles.label}>{t('Password')}</Text>
             <TextInput
-              style={styles.input}
+              style={[styles.input, { color: '#000' }]}
               value={password}
               onChangeText={setPassword}
               placeholder={t('Enter your password')}
+              placeholderTextColor={placeholderTextColor}
               secureTextEntry
               autoCapitalize="none"
               autoCorrect={false}

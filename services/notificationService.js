@@ -66,87 +66,10 @@ class NotificationService {
     return token;
   }
 
-  // Schedule a local notification
-  async scheduleNotification(title, body, data = {}, trigger = null) {
-    try {
-      const notificationId = await Notifications.scheduleNotificationAsync({
-        content: {
-          title,
-          body,
-          data,
-          sound: true,
-          priority: Notifications.AndroidNotificationPriority.HIGH,
-        },
-        trigger: trigger || null, // null means immediate
-      });
-      return notificationId;
-    } catch (error) {
-      console.error('Error scheduling notification:', error);
-      return null;
-    }
-  }
-
-  // Send low stock alert
-  async sendLowStockAlert(itemName, currentStock, minStock) {
-    const settings = await this.getNotificationSettings();
-    
-    if (!settings.lowStockAlerts) {
-      console.log('Low stock alerts are disabled');
-      return;
-    }
-
-    const title = '⚠️ Low Stock Alert';
-    const body = `${itemName} is running low! Only ${currentStock} left (minimum: ${minStock})`;
-    
-    return await this.scheduleNotification(title, body, {
-      type: 'low_stock',
-      itemName,
-      currentStock,
-      minStock,
-    });
-  }
-
-  // Send daily sales notification
-  async sendDailySalesNotification(totalSales, totalIncome, itemCount) {
-    const settings = await this.getNotificationSettings();
-    
-    if (!settings.salesNotifications) {
-      console.log('Sales notifications are disabled');
-      return;
-    }
-
-    const title = '📊 Daily Sales Summary';
-    const body = `Today: ${itemCount} items sold | Income: ${totalIncome} Ks`;
-    
-    return await this.scheduleNotification(title, body, {
-      type: 'daily_sales',
-      totalSales,
-      totalIncome,
-      itemCount,
-    });
-  }
-
-  // Schedule daily sales notification (e.g., at 9 PM every day)
-  // Removed: client-side scheduled daily sales notifications. Server-driven notifications are preferred.
-
-  // Cancel all scheduled notifications of a specific type
-  async cancelScheduledNotifications(type) {
-    const scheduled = await Notifications.getAllScheduledNotificationsAsync();
-    const toCancel = scheduled.filter(n => n.content.data?.type === type);
-    
-    for (const notification of toCancel) {
-      await Notifications.cancelScheduledNotificationAsync(notification.identifier);
-    }
-  }
-
   // Save notification settings to local storage
   async saveNotificationSettings(settings) {
     try {
       await SecureStore.setItemAsync('notificationSettings', JSON.stringify(settings));
-      
-      // Ensure no client-side scheduled daily notifications remain
-      await this.cancelScheduledNotifications('daily_sales_scheduled');
-      
       return true;
     } catch (error) {
       console.error('Error saving notification settings:', error);

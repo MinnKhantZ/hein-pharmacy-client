@@ -13,11 +13,13 @@ import {
     View,
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useThemeColor } from '../../hooks/use-theme-color';
 import { authAPI } from '../../services/api';
 
 export default function ChangePasswordScreen() {
   const { t } = useTranslation();
   const insets = useSafeAreaInsets();
+  const placeholderTextColor = useThemeColor({}, 'placeholder');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [passwordForm, setPasswordForm] = useState({
     currentPassword: '',
@@ -73,12 +75,13 @@ export default function ChangePasswordScreen() {
             {t('Current Password')} *
           </Text>
           <TextInput
-            style={styles.input}
+            style={[styles.input, { color: '#000' }]}
             value={passwordForm.currentPassword}
             onChangeText={(text) =>
               setPasswordForm({ ...passwordForm, currentPassword: text })
             }
             placeholder={t('Enter current password')}
+            placeholderTextColor={placeholderTextColor}
             secureTextEntry
           />
 
@@ -86,12 +89,13 @@ export default function ChangePasswordScreen() {
             {t('New Password')} *
           </Text>
           <TextInput
-            style={styles.input}
+            style={[styles.input, { color: '#000' }]}
             value={passwordForm.newPassword}
             onChangeText={(text) =>
               setPasswordForm({ ...passwordForm, newPassword: text })
             }
             placeholder={t('Enter new password')}
+            placeholderTextColor={placeholderTextColor}
             secureTextEntry
           />
 
@@ -99,12 +103,13 @@ export default function ChangePasswordScreen() {
             {t('Confirm New Password')} *
           </Text>
           <TextInput
-            style={styles.input}
+            style={[styles.input, { color: '#000' }]}
             value={passwordForm.confirmPassword}
             onChangeText={(text) =>
               setPasswordForm({ ...passwordForm, confirmPassword: text })
             }
             placeholder={t('Confirm new password')}
+            placeholderTextColor={placeholderTextColor}
             secureTextEntry
           />
         </ScrollView>

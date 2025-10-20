@@ -1,14 +1,15 @@
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
-    Modal,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
+  Modal,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from 'react-native';
+import { useThemeColor } from '../hooks/use-theme-color';
 
 interface SearchableDropdownProps {
   placeholder?: string;
@@ -28,6 +29,7 @@ export default function SearchableDropdown({
   onNewValueAdded,
 }: SearchableDropdownProps) {
   const { t } = useTranslation();
+  const placeholderTextColor = useThemeColor({}, 'placeholder');
   const [showDropdown, setShowDropdown] = useState(false);
   const [searchText, setSearchText] = useState('');
 
@@ -84,7 +86,7 @@ export default function SearchableDropdown({
               value={searchText}
               onChangeText={setSearchText}
               autoFocus
-              placeholderTextColor="#999"
+              placeholderTextColor={placeholderTextColor}
             />
 
             {/* Add New Option Button */}

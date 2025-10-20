@@ -40,6 +40,12 @@ export default function RootLayout() {
                     headerShown: true,
                   }}
                 />
+                <Stack.Screen
+                  name="sales-details"
+                  options={{
+                    headerShown: false,
+                  }}
+                />
                 <Stack.Screen name="modal" options={{ presentation: 'modal', title: 'Modal' }} />
               </Stack>
               <StatusBar style="auto" />

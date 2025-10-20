@@ -1,20 +1,21 @@
 import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
-  ActivityIndicator,
-  Alert,
-  KeyboardAvoidingView,
-  Modal,
-  Platform,
-  RefreshControl,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View,
+    ActivityIndicator,
+    Alert,
+    KeyboardAvoidingView,
+    Modal,
+    Platform,
+    RefreshControl,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TextInput,
+    TouchableOpacity,
+    View,
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useThemeColor } from '../../hooks/use-theme-color';
 import { authAPI } from '../../services/api';
 interface Owner {
   id: number;
@@ -27,6 +28,7 @@ interface Owner {
 export default function OwnerManagementScreen() {
   const { t } = useTranslation();
   const insets = useSafeAreaInsets();
+  const placeholderTextColor = useThemeColor({}, 'placeholder');
   const [owners, setOwners] = useState<Owner[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -283,15 +285,17 @@ export default function OwnerManagementScreen() {
               value={newOwnerForm.username}
               onChangeText={(text) => setNewOwnerForm({ ...newOwnerForm, username: text })}
               placeholder={t('Enter username')}
+              placeholderTextColor={placeholderTextColor}
               autoCapitalize="none"
             />
 
             <Text style={styles.label}>{t('Password')} *</Text>
             <TextInput
-              style={styles.input}
+              style={[styles.input, { color: '#000' }]}
               value={newOwnerForm.password}
               onChangeText={(text) => setNewOwnerForm({ ...newOwnerForm, password: text })}
               placeholder={t('Enter password')}
+              placeholderTextColor={placeholderTextColor}
               secureTextEntry
             />
 
@@ -301,6 +305,7 @@ export default function OwnerManagementScreen() {
               value={newOwnerForm.full_name}
               onChangeText={(text) => setNewOwnerForm({ ...newOwnerForm, full_name: text })}
               placeholder={t('Enter full name')}
+              placeholderTextColor={placeholderTextColor}
             />
 
             <Text style={styles.label}>{t('Email')} (Optional)</Text>
@@ -309,6 +314,7 @@ export default function OwnerManagementScreen() {
               value={newOwnerForm.email}
               onChangeText={(text) => setNewOwnerForm({ ...newOwnerForm, email: text })}
               placeholder={t('Enter email')}
+              placeholderTextColor={placeholderTextColor}
               keyboardType="email-address"
               autoCapitalize="none"
             />
@@ -319,6 +325,7 @@ export default function OwnerManagementScreen() {
               value={newOwnerForm.phone}
               onChangeText={(text) => setNewOwnerForm({ ...newOwnerForm, phone: text })}
               placeholder={t('Enter phone number')}
+              placeholderTextColor={placeholderTextColor}
               keyboardType="phone-pad"
             />
           </ScrollView>
@@ -374,6 +381,7 @@ export default function OwnerManagementScreen() {
               value={editOwnerForm.full_name}
               onChangeText={(text) => setEditOwnerForm({ ...editOwnerForm, full_name: text })}
               placeholder={t('Enter full name')}
+              placeholderTextColor={placeholderTextColor}
             />
 
             <Text style={styles.label}>{t('Email')} (Optional)</Text>
@@ -382,6 +390,7 @@ export default function OwnerManagementScreen() {
               value={editOwnerForm.email}
               onChangeText={(text) => setEditOwnerForm({ ...editOwnerForm, email: text })}
               placeholder={t('Enter email')}
+              placeholderTextColor={placeholderTextColor}
               keyboardType="email-address"
               autoCapitalize="none"
             />
@@ -392,6 +401,7 @@ export default function OwnerManagementScreen() {
               value={editOwnerForm.phone}
               onChangeText={(text) => setEditOwnerForm({ ...editOwnerForm, phone: text })}
               placeholder={t('Enter phone number')}
+              placeholderTextColor={placeholderTextColor}
               keyboardType="phone-pad"
             />
           </ScrollView>
@@ -440,10 +450,11 @@ export default function OwnerManagementScreen() {
 
             <Text style={styles.label}>{t('New Password')} *</Text>
             <TextInput
-              style={styles.input}
+              style={[styles.input, { color: '#000' }]}
               value={newPassword}
               onChangeText={setNewPassword}
               placeholder={t('Enter new password')}
+              placeholderTextColor={placeholderTextColor}
               secureTextEntry
             />
 

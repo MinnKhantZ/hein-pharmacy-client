@@ -14,12 +14,14 @@ import {
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAuth } from '../../contexts/AuthContext';
+import { useThemeColor } from '../../hooks/use-theme-color';
 import { authAPI } from '../../services/api';
 
 export default function EditProfileScreen() {
   const { user } = useAuth();
   const { t } = useTranslation();
   const insets = useSafeAreaInsets();
+  const placeholderTextColor = useThemeColor({}, 'placeholder');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const [editForm, setEditForm] = useState({
@@ -60,6 +62,7 @@ export default function EditProfileScreen() {
             value={editForm.full_name}
             onChangeText={(text) => setEditForm({ ...editForm, full_name: text })}
             placeholder={t('Enter your full name')}
+            placeholderTextColor={placeholderTextColor}
           />
 
           <Text style={styles.label}>{t('Email')}</Text>
@@ -68,6 +71,7 @@ export default function EditProfileScreen() {
             value={editForm.email}
             onChangeText={(text) => setEditForm({ ...editForm, email: text })}
             placeholder={t('Enter your email')}
+            placeholderTextColor={placeholderTextColor}
             keyboardType="email-address"
             autoCapitalize="none"
           />
@@ -78,6 +82,7 @@ export default function EditProfileScreen() {
             value={editForm.phone}
             onChangeText={(text) => setEditForm({ ...editForm, phone: text })}
             placeholder={t('Enter your phone number')}
+            placeholderTextColor={placeholderTextColor}
             keyboardType="phone-pad"
           />
         </ScrollView>

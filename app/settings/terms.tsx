@@ -22,30 +22,26 @@ export default function TermsScreen() {
           <Text style={styles.termsTitle}>{t('About Hein Pharmacy')}</Text>
           <Text style={styles.termsText}>{t('A comprehensive pharmacy management system')}</Text>
 
-          <Text style={styles.termsTitle}>Terms of Service</Text>
+          <Text style={styles.termsTitle}>{t('Terms of Service')}</Text>
           <Text style={styles.termsText}>
-            This pharmacy management system is provided for authorized users only. By using this
-            application, you agree to maintain the confidentiality of all patient and business
-            information accessed through the system.
+            {t('Terms of Service Content')}
           </Text>
 
-          <Text style={styles.termsTitle}>Privacy Policy</Text>
+          <Text style={styles.termsTitle}>{t('Privacy Policy')}</Text>
           <Text style={styles.termsText}>
-            We are committed to protecting your privacy and the privacy of your customers. All data
-            is stored securely and will not be shared with third parties without explicit consent.
+            {t('Privacy Policy Content')}
           </Text>
 
-          <Text style={styles.termsTitle}>Data Security</Text>
+          <Text style={styles.termsTitle}>{t('Data Security')}</Text>
           <Text style={styles.termsText}>
-            All sensitive information is encrypted and stored securely. Users are responsible for
-            maintaining the security of their login credentials.
+            {t('Data Security Content')}
           </Text>
 
           <Text style={styles.termsTitle}>{t('Contact Us')}</Text>
-          <Text style={styles.termsText}>For support or inquiries, please contact our support team.</Text>
+          <Text style={styles.termsText}>{t('Support Contact')}</Text>
 
-          <Text style={styles.termsVersion}>Version 1.0.0</Text>
-          <Text style={styles.termsDate}>Last Updated: October 8, 2025</Text>
+          <Text style={styles.termsVersion}>{t('Version')} 1.0.0</Text>
+          <Text style={styles.termsDate}>{t('Last Updated')}: October 21, 2025</Text>
         </View>
       </ScrollView>
     </SafeAreaView>

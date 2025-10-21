@@ -61,7 +61,8 @@
     "updates": {
       "enabled": true,
       "checkAutomatically": "ON_LOAD",
-      "fallbackToCacheTimeout": 0
+      "fallbackToCacheTimeout": 0,
+      "url": "https://u.expo.dev/fbad1d52-46d0-45ca-afdc-2939a8742dc5"
     },
     "experiments": {
       "typedRoutes": true,
@@ -73,6 +74,9 @@
         "projectId": "fbad1d52-46d0-45ca-afdc-2939a8742dc5"
       }
     },
-    "owner": "minkhantzaw"
+    "owner": "minkhantzaw",
+    "runtimeVersion": {
+      "policy": "appVersion"
+    }
   }
 }

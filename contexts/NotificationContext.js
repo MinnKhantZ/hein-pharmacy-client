@@ -1,7 +1,7 @@
-import * as SecureStore from 'expo-secure-store';
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { Alert } from 'react-native';
 import notificationService from '../services/notificationService';
+import * as secureStorage from '../utils/secureStorage';
 
 const NotificationContext = createContext();
 
@@ -53,7 +53,7 @@ export function NotificationProvider({ children }) {
         
         // Register device with server if user is logged in
         try {
-          const authToken = await SecureStore.getItemAsync('authToken');
+          const authToken = await secureStorage.getItemAsync('authToken');
           if (authToken) {
             console.log('User is logged in, registering device with server...');
             await notificationService.registerDeviceWithServer(token, null, authToken);
@@ -101,7 +101,7 @@ export function NotificationProvider({ children }) {
       
       // Sync with server if user is logged in
       try {
-        const authToken = await SecureStore.getItemAsync('authToken');
+        const authToken = await secureStorage.getItemAsync('authToken');
         if (authToken) {
           if (expoPushToken) {
             await notificationService.updateServerPreferences(expoPushToken, newSettings);

@@ -1,7 +1,7 @@
-import * as SecureStore from 'expo-secure-store';
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { authAPI } from '../services/api';
 import notificationService from '../services/notificationService';
+import * as secureStorage from '../utils/secureStorage';
 
 export const AuthContext = createContext({
   user: null,
@@ -33,8 +33,8 @@ export const AuthProvider = ({ children }) => {
   const loadStoredAuth = async () => {
     try {
       const [storedToken, storedUser] = await Promise.all([
-        SecureStore.getItemAsync('authToken'),
-        SecureStore.getItemAsync('user'),
+        secureStorage.getItemAsync('authToken'),
+        secureStorage.getItemAsync('user'),
       ]);
 
       if (storedToken && storedUser) {
@@ -44,7 +44,7 @@ export const AuthProvider = ({ children }) => {
           const { owner } = response.data;
           
           // Token is valid, update user data in case it changed
-          await SecureStore.setItemAsync('user', JSON.stringify(owner));
+          await secureStorage.setItemAsync('user', JSON.stringify(owner));
           setToken(storedToken);
           setUser(owner);
           console.log('Token validated successfully');
@@ -52,8 +52,8 @@ export const AuthProvider = ({ children }) => {
           console.log('Token validation failed:', validationError);
           // Token is invalid or expired, clear stored data
           await Promise.all([
-            SecureStore.deleteItemAsync('authToken'),
-            SecureStore.deleteItemAsync('user'),
+            secureStorage.deleteItemAsync('authToken'),
+            secureStorage.deleteItemAsync('user'),
           ]);
           setToken(null);
           setUser(null);
@@ -64,8 +64,8 @@ export const AuthProvider = ({ children }) => {
       // Clear potentially corrupted data
       try {
         await Promise.all([
-          SecureStore.deleteItemAsync('authToken'),
-          SecureStore.deleteItemAsync('user'),
+          secureStorage.deleteItemAsync('authToken'),
+          secureStorage.deleteItemAsync('user'),
         ]);
       } catch (clearError) {
         console.log('Error clearing auth:', clearError);
@@ -83,8 +83,8 @@ export const AuthProvider = ({ children }) => {
       const { token: authToken, owner } = response.data;
 
       await Promise.all([
-        SecureStore.setItemAsync('authToken', authToken),
-        SecureStore.setItemAsync('user', JSON.stringify(owner)),
+        secureStorage.setItemAsync('authToken', authToken),
+        secureStorage.setItemAsync('user', JSON.stringify(owner)),
       ]);
 
       setToken(authToken);
@@ -133,8 +133,8 @@ export const AuthProvider = ({ children }) => {
       }
 
       await Promise.all([
-        SecureStore.deleteItemAsync('authToken'),
-        SecureStore.deleteItemAsync('user'),
+        secureStorage.deleteItemAsync('authToken'),
+        secureStorage.deleteItemAsync('user'),
       ]);
 
       setToken(null);
@@ -149,7 +149,7 @@ export const AuthProvider = ({ children }) => {
       const response = await authAPI.updateProfile(profileData);
       const updatedUser = response.data.owner;
 
-      await SecureStore.setItemAsync('user', JSON.stringify(updatedUser));
+      await secureStorage.setItemAsync('user', JSON.stringify(updatedUser));
       setUser(updatedUser);
 
       return { success: true };

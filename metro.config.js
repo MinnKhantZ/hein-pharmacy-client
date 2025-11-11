@@ -13,10 +13,14 @@ config.symbolicator = {
   },
 };
 
-// Enhanced resolver configuration
+// Enhanced resolver configuration for web and native platforms
 config.resolver = {
   ...config.resolver,
+  // Add platform-specific extensions for web support
   sourceExts: [...config.resolver.sourceExts, 'cjs'],
+  // Ensure platform extensions are resolved in the correct order
+  // .web.js/.web.ts will be picked for web, .native.js/.native.ts for native
+  platforms: ['ios', 'android', 'web'],
 };
 
 module.exports = config;

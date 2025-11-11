@@ -11,11 +11,15 @@ import {
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAuth } from '../../contexts/AuthContext';
+import { useDocumentTitle } from '../../hooks/useDocumentTitle';
+import { useBreakpoint } from '../../utils/responsive';
 
 export default function ProfileScreen() {
   const { user, logout } = useAuth();
   const { t } = useTranslation();
   const insets = useSafeAreaInsets();
+  const deviceType = useBreakpoint();
+  useDocumentTitle('Profile - Hein Pharmacy');
 
   const handleLogout = () => {
     Alert.alert(
@@ -30,11 +34,14 @@ export default function ProfileScreen() {
 
   return (
     <SafeAreaView style={styles.container} edges={['top', 'left', 'right', 'bottom']}>
-      <ScrollView style={styles.content} contentContainerStyle={[styles.scrollView, { paddingBottom: insets.bottom + 50 }]}>
+      <ScrollView 
+        style={[styles.content, (deviceType === 'desktop' || deviceType === 'largeDesktop') && styles.contentDesktop]} 
+        contentContainerStyle={[styles.scrollView, { paddingBottom: insets.bottom + 50 }]}
+      >
         <Text style={styles.title}>{t('Profile')}</Text>
         <Text style={styles.subtitle}>{t('Manage your account settings')}</Text>
         
-        <View style={styles.profileCard}>
+        <View style={[styles.profileCard, (deviceType === 'desktop' || deviceType === 'largeDesktop') && styles.profileCardDesktop]}>
           <View style={styles.avatar}>
             <Text style={styles.avatarText}>
               {(user as any)?.full_name?.charAt(0)?.toUpperCase() || 'U'}
@@ -106,6 +113,11 @@ const styles = StyleSheet.create({
     padding: 20,
     paddingTop: 20,
   },
+  contentDesktop: {
+    maxWidth: 800,
+    alignSelf: 'center',
+    width: '100%',
+  },
   scrollView: {
     paddingBottom: 20, // Base padding, additional padding added dynamically via insets.bottom
   },
@@ -134,6 +146,9 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 3.84,
     elevation: 5,
+  },
+  profileCardDesktop: {
+    padding: 40,
   },
   avatar: {
     width: 80,

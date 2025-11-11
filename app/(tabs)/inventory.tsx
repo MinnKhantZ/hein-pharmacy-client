@@ -2,19 +2,19 @@ import { useLocalSearchParams } from 'expo-router';
 import React, { useContext, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
-    ActivityIndicator,
-    Alert,
-    FlatList,
-    KeyboardAvoidingView,
-    Modal,
-    Platform,
-    RefreshControl,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
+  ActivityIndicator,
+  Alert,
+  FlatList,
+  KeyboardAvoidingView,
+  Modal,
+  Platform,
+  RefreshControl,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from 'react-native';
 import RNPickerSelect from 'react-native-picker-select';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -22,8 +22,10 @@ import OwnerSelector from '../../components/OwnerSelector';
 import SearchableDropdown from '../../components/SearchableDropdown';
 import { AuthContext } from '../../contexts/AuthContext';
 import { useThemeColor } from '../../hooks/use-theme-color';
+import { useDocumentTitle } from '../../hooks/useDocumentTitle';
 import { authAPI, inventoryAPI } from '../../services/api';
 import { formatPrice } from '../../utils/priceFormatter';
+import { useBreakpoint } from '../../utils/responsive';
 
 interface InventoryItem {
   id: number;
@@ -51,6 +53,8 @@ export default function InventoryScreen() {
   const placeholderTextColor = useThemeColor({}, 'placeholder');
   const params = useLocalSearchParams<{ openModal?: string }>();
   const insets = useSafeAreaInsets();
+  const deviceType = useBreakpoint();
+  useDocumentTitle('Inventory - Hein Pharmacy');
   const [filteredItems, setFilteredItems] = useState<InventoryItem[]>([]);
   const [owners, setOwners] = useState<Owner[]>([]);
   const [categories, setCategories] = useState<string[]>([]);
@@ -414,11 +418,14 @@ export default function InventoryScreen() {
       ) : (
         <FlatList
           data={filteredItems}
+          numColumns={deviceType === 'desktop' || deviceType === 'largeDesktop' ? 2 : 1}
+          key={deviceType === 'desktop' || deviceType === 'largeDesktop' ? 'desktop' : 'mobile'}
           renderItem={({ item }) => (
             <TouchableOpacity
               style={[
                 styles.itemCard,
                 item.quantity <= item.minimum_stock && styles.lowStockCard,
+                (deviceType === 'desktop' || deviceType === 'largeDesktop') && styles.itemCardDesktop,
               ]}
               onPress={() => openEditModal(item)}
             >
@@ -639,6 +646,10 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 3,
     elevation: 3,
+  },
+  itemCardDesktop: {
+    flex: 0.48,
+    marginHorizontal: 8,
   },
   lowStockCard: {
     borderLeftWidth: 4,

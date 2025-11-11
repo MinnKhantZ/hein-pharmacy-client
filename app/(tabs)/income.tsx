@@ -13,8 +13,10 @@ import {
 } from 'react-native';
 import { BarChart, LineChart, PieChart } from 'react-native-chart-kit';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useDocumentTitle } from '../../hooks/useDocumentTitle';
 import { incomeAPI } from '../../services/api';
 import { formatPrice, getCurrencySymbol } from '../../utils/priceFormatter';
+import { useBreakpoint } from '../../utils/responsive';
 
 const screenWidth = Dimensions.get('window').width;
 
@@ -33,6 +35,9 @@ type Period = 'daily' | 'monthly' | 'yearly';
 export default function IncomeScreen() {
   const { t } = useTranslation();
   const insets = useSafeAreaInsets();
+  const deviceType = useBreakpoint();
+  useDocumentTitle('Income Analytics - Hein Pharmacy');
+  const chartWidth = deviceType === 'desktop' || deviceType === 'largeDesktop' ? 800 : screenWidth;
   const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [period, setPeriod] = useState<Period>('daily');
@@ -402,7 +407,7 @@ export default function IncomeScreen() {
                 <ScrollView horizontal showsHorizontalScrollIndicator={false}>
                   <LineChart
                     data={lineChartData}
-                    width={Math.max(screenWidth, lineChartData.labels.length * 80)}
+                    width={Math.max(chartWidth, lineChartData.labels.length * 80)}
                     height={220}
                     chartConfig={chartConfig}
                     bezier
@@ -460,7 +465,7 @@ export default function IncomeScreen() {
                 <Text style={styles.sectionTitle}>{t('Sales Distribution')} ({periodLabel})</Text>
                 <PieChart
                   data={pieChartData}
-                  width={screenWidth}
+                  width={chartWidth}
                   height={220}
                   chartConfig={chartConfig}
                   accessor="sales"

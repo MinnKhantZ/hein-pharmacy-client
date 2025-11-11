@@ -1,14 +1,46 @@
 import { HapticTab } from '@/components/haptic-tab';
-import { IconSymbol } from '@/components/ui/icon-symbol';
-import { Redirect, Tabs } from 'expo-router';
+import { IconSymbol, type IconSymbolName } from '@/components/ui/icon-symbol';
+import { Redirect, Tabs, router } from 'expo-router';
+import React from 'react';
 import { useTranslation } from 'react-i18next';
+import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAuth } from '../../contexts/AuthContext';
+import { useBreakpoint } from '../../utils/responsive';
+
+// Sidebar link component for desktop navigation
+function SidebarLink({ icon, label, route }: { icon: IconSymbolName; label: string; route: string }) {
+  return (
+    <TouchableOpacity 
+      style={sidebarStyles.link}
+      onPress={() => router.push(route as any)}
+    >
+      <IconSymbol size={24} name={icon} color="#2196F3" />
+      <Text style={sidebarStyles.linkText}>{label}</Text>
+    </TouchableOpacity>
+  );
+}
+
+const sidebarStyles = StyleSheet.create({
+  link: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+  },
+  linkText: {
+    color: '#222',
+    fontWeight: '600',
+    fontSize: 16,
+  },
+});
 
 export default function TabLayout() {
   const { isAuthenticated, isLoading } = useAuth();
   const { t } = useTranslation();
   const insets = useSafeAreaInsets();
+  const deviceType = useBreakpoint();
 
   if (isLoading) {
     return null; // Or loading spinner
@@ -21,6 +53,37 @@ export default function TabLayout() {
   // Calculate tab bar height including safe area
   const tabBarHeight = 60 + insets.bottom;
 
+  if (deviceType === 'desktop' || deviceType === 'largeDesktop') {
+    // Sidebar navigation for desktop
+    return (
+      <View style={desktopStyles.container}>
+        <View style={desktopStyles.sidebar}>
+          <SidebarLink icon="house.fill" label={t('Home')} route="/(tabs)/dashboard" />
+          <SidebarLink icon="pills.fill" label={t('Inventory')} route="/(tabs)/inventory" />
+          <SidebarLink icon="creditcard.fill" label={t('Sales')} route="/(tabs)/sales" />
+          <SidebarLink icon="chart.pie.fill" label={t('Analytics')} route="/(tabs)/income" />
+          <SidebarLink icon="person.circle.fill" label={t('Profile')} route="/(tabs)/profile" />
+        </View>
+        <View style={desktopStyles.main}>
+          <Tabs
+            screenOptions={{
+              headerShown: false,
+              tabBarStyle: { display: 'none' },
+            }}
+          >
+            <Tabs.Screen name="dashboard" />
+            <Tabs.Screen name="inventory" />
+            <Tabs.Screen name="sales" />
+            <Tabs.Screen name="income" />
+            <Tabs.Screen name="profile" />
+            <Tabs.Screen name="index" options={{ href: null }} />
+            <Tabs.Screen name="explore" options={{ href: null }} />
+          </Tabs>
+        </View>
+      </View>
+    );
+  }
+  // Mobile/tablet: keep tab bar
   return (
     <Tabs
       screenOptions={{
@@ -95,3 +158,22 @@ export default function TabLayout() {
     </Tabs>
   );
 }
+
+const desktopStyles = StyleSheet.create({
+  container: {
+    flexDirection: 'row',
+    minHeight: '100%',
+    flex: 1,
+  },
+  sidebar: {
+    width: 220,
+    backgroundColor: '#f7f7f7',
+    borderRightWidth: 1,
+    borderRightColor: '#e0e0e0',
+    paddingVertical: 32,
+  },
+  main: {
+    flex: 1,
+    // padding: 32,
+  },
+});

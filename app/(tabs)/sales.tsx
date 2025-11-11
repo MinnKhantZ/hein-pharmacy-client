@@ -19,8 +19,10 @@ import {
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNotifications } from '../../contexts/NotificationContext';
 import { useThemeColor } from '../../hooks/use-theme-color';
+import { useDocumentTitle } from '../../hooks/useDocumentTitle';
 import { inventoryAPI, salesAPI } from '../../services/api';
 import { formatPrice } from '../../utils/priceFormatter';
+import { useBreakpoint } from '../../utils/responsive';
 
 interface InventoryItem {
   id: number;
@@ -69,6 +71,8 @@ export default function SalesScreen() {
   const insets = useSafeAreaInsets();
   const params = useLocalSearchParams<{ openModal?: string }>();
   const router = useRouter();
+  const deviceType = useBreakpoint();
+  useDocumentTitle('Sales Report - Hein Pharmacy');
   const [showSaleModal, setShowSaleModal] = useState(false);
   const [inventoryItems, setInventoryItems] = useState<InventoryItem[]>([]);
   const [saleItems, setSaleItems] = useState<SaleItem[]>([]);
@@ -446,9 +450,11 @@ export default function SalesScreen() {
       ) : (
         <FlatList
           data={salesHistory}
+          numColumns={deviceType === 'desktop' || deviceType === 'largeDesktop' ? 2 : 1}
+          key={deviceType === 'desktop' || deviceType === 'largeDesktop' ? 'desktop' : 'mobile'}
           renderItem={({ item: sale }) => (
             <TouchableOpacity 
-              style={styles.saleCard}
+              style={[styles.saleCard, (deviceType === 'desktop' || deviceType === 'largeDesktop') && styles.saleCardDesktop]}
               onPress={() => router.push({ pathname: '/sales-details/[id]', params: { id: sale.id } })}
             >
               <View style={styles.saleHeader}>
@@ -802,6 +808,10 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 4,
     elevation: 3,
+  },
+  saleCardDesktop: {
+    flex: 0.48,
+    marginHorizontal: 8,
   },
   saleHeader: {
     flexDirection: 'row',

@@ -14,6 +14,8 @@ import {
 } from 'react-native';
 import { useAuth } from '../../contexts/AuthContext';
 import { useThemeColor } from '../../hooks/use-theme-color';
+import { useDocumentTitle } from '../../hooks/useDocumentTitle';
+import { useBreakpoint } from '../../utils/responsive';
 
 export default function LoginScreen() {
   const [username, setUsername] = useState('');
@@ -22,6 +24,8 @@ export default function LoginScreen() {
   const { login } = useAuth();
   const { t } = useTranslation();
   const placeholderTextColor = useThemeColor({}, 'placeholder');
+  const deviceType = useBreakpoint();
+  useDocumentTitle('Login - Hein Pharmacy');
 
   const handleLogin = async () => {
     if (!username.trim() || !password.trim()) {
@@ -50,13 +54,25 @@ export default function LoginScreen() {
       style={styles.container} 
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
-      <ScrollView contentContainerStyle={styles.scrollContainer} keyboardShouldPersistTaps="handled">
-        <View style={styles.headerContainer}>
+      <ScrollView 
+        contentContainerStyle={[
+          styles.scrollContainer,
+          deviceType === 'desktop' || deviceType === 'largeDesktop' ? styles.scrollContainerDesktop : null
+        ]} 
+        keyboardShouldPersistTaps="handled"
+      >
+        <View style={[
+          styles.headerContainer,
+          deviceType === 'desktop' || deviceType === 'largeDesktop' ? styles.headerContainerDesktop : null
+        ]}>
           <Text style={styles.title}>Hein Pharmacy</Text>
           <Text style={styles.subtitle}>Inventory & Income Manager</Text>
         </View>
 
-        <View style={styles.formContainer}>
+        <View style={[
+          styles.formContainer,
+          deviceType === 'desktop' || deviceType === 'largeDesktop' ? styles.formContainerDesktop : null
+        ]}>
           <View style={styles.inputContainer}>
             <Text style={styles.label}>{t('Username')}</Text>
             <TextInput
@@ -169,5 +185,17 @@ const styles = StyleSheet.create({
     color: 'white',
     fontSize: 16,
     fontWeight: '600',
+  },
+  scrollContainerDesktop: {
+    justifyContent: 'center',
+    alignItems: 'center',
+    minHeight: '100%',
+  },
+  headerContainerDesktop: {
+    marginBottom: 60,
+  },
+  formContainerDesktop: {
+    width: 400,
+    maxWidth: '90%',
   },
 });

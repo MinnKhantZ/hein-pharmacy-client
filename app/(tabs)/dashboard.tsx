@@ -10,11 +10,15 @@ import {
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAuth } from '../../contexts/AuthContext';
+import { useDocumentTitle } from '../../hooks/useDocumentTitle';
+import { useBreakpoint } from '../../utils/responsive';
 
 export default function DashboardScreen() {
   const { user } = useAuth();
   const { t } = useTranslation();
+  useDocumentTitle('Dashboard - Hein Pharmacy');
   const insets = useSafeAreaInsets();
+  const deviceType = useBreakpoint();
 
   const dashboardItems = [
     {
@@ -58,11 +62,11 @@ export default function DashboardScreen() {
 
         <View style={styles.quickActionsContainer}>
           <Text style={styles.sectionTitle}>{t('Quick Actions')}</Text>
-          <View style={styles.grid}>
+          <View style={[styles.grid, deviceType === 'desktop' || deviceType === 'largeDesktop' ? styles.gridDesktop : null]}>
             {dashboardItems.map((item, index) => (
               <TouchableOpacity
                 key={index}
-                style={[styles.card, { backgroundColor: item.color }]}
+                style={[styles.card, { backgroundColor: item.color }, deviceType === 'desktop' || deviceType === 'largeDesktop' ? styles.cardDesktop : null]}
                 onPress={item.action}
                 activeOpacity={0.8}
               >
@@ -120,6 +124,9 @@ const styles = StyleSheet.create({
     flexWrap: 'wrap',
     justifyContent: 'space-between',
   },
+  gridDesktop: {
+    gap: 20,
+  },
   card: {
     width: '48%',
     padding: 20,
@@ -128,6 +135,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     minHeight: 120,
+  },
+  cardDesktop: {
+    width: '23%',
+    minHeight: 140,
+    padding: 24,
   },
   cardIcon: {
     fontSize: 30,

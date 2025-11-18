@@ -41,6 +41,13 @@ A comprehensive mobile application for pharmacy inventory and income management,
 - **Payment Methods**: Support for cash, card, and mobile payments
 - **Stock Validation**: Prevent overselling with real-time checks
 - **Sales History**: Complete transaction history with search
+- **Receipt Printing**: Print receipts on Bluetooth thermal printers (mobile) or browser (web)
+
+### 🖨️ Receipt Printing (NEW)
+- **Bluetooth Printing**: Connect to thermal printers on mobile devices
+- **Web Printing**: Browser-based printing for web platform
+- **Professional Receipts**: Formatted receipts with store info, items, and totals
+- **Cross-Platform**: Works seamlessly on iOS, Android, and web
 
 ### 📦 Inventory Control
 - **Full CRUD**: Create, read, update, delete inventory items

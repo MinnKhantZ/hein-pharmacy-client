@@ -12,10 +12,13 @@ import {
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNotifications } from '../../contexts/NotificationContext';
+import { useBreakpoint } from '../../utils/responsive';
 
 export default function NotificationsScreen() {
   const { t } = useTranslation();
   const insets = useSafeAreaInsets();
+  const breakpoint = useBreakpoint();
+  const isDesktop = breakpoint === 'desktop' || breakpoint === 'largeDesktop';
   const {
     notificationSettings: savedNotificationSettings,
     updateSettings: updateNotificationSettings,
@@ -134,6 +137,7 @@ export default function NotificationsScreen() {
                     border: '1px solid #ddd',
                     borderRadius: '8px',
                     width: '100%',
+                    maxWidth: isDesktop ? '200px' : '100%',
                   }}
                 />
               </View>

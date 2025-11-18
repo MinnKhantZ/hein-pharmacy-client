@@ -14,9 +14,14 @@ import {
     View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import PrintReceipt from '../../components/PrintReceipt';
 import { useThemeColor } from '../../hooks/use-theme-color';
 import { inventoryAPI, salesAPI } from '../../services/api';
 import { formatPrice } from '../../utils/priceFormatter';
+import { useBreakpoint } from '../../utils/responsive';
+
+// Dynamically import formatter to avoid importing native modules on web
+const { formatReceiptData } = require('../../utils/receiptFormatter');
 
 interface SaleItem {
   id: number;
@@ -56,6 +61,8 @@ export default function SaleDetailsScreen() {
   const router = useRouter();
   const params = useLocalSearchParams<{ id: string }>();
   const placeholderTextColor = useThemeColor({}, 'placeholder');
+  const breakpoint = useBreakpoint();
+  const isDesktop = breakpoint === 'desktop' || breakpoint === 'largeDesktop';
   
   const [sale, setSale] = useState<SaleRecord | null>(null);
   const [loading, setLoading] = useState(true);
@@ -262,285 +269,315 @@ export default function SaleDetailsScreen() {
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={styles.flex}
       >
-        <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
+        <ScrollView 
+          style={styles.scrollView} 
+          showsVerticalScrollIndicator={false} 
+          keyboardShouldPersistTaps="handled"
+          contentContainerStyle={isDesktop ? styles.desktopContentContainer : undefined}
+        >
           {!isEditing ? (
             // View Mode
             <>
-              <View style={styles.header}>
+              <View style={[styles.header, isDesktop && [styles.desktopHeader, styles.desktopFullWidthHeader]]}>
                 <View>
-                  <Text style={styles.saleTitle}>{t('Sale')} #{sale.id}</Text>
-                  <Text style={styles.saleDate}>
+                  <Text style={[styles.saleTitle, isDesktop && styles.desktopSaleTitle]}>{t('Sale')} #{sale.id}</Text>
+                  <Text style={[styles.saleDate, isDesktop && styles.desktopSaleDate]}>
                     {new Date(sale.sale_date).toLocaleString()}
                   </Text>
                 </View>
-                <Text style={styles.totalAmount}>{formatPrice(Number(sale.total_amount))}</Text>
+                <Text style={[styles.totalAmount, isDesktop && styles.desktopTotalAmount]}>{formatPrice(Number(sale.total_amount))}</Text>
               </View>
 
-              <View style={styles.section}>
-                <Text style={styles.sectionTitle}>{t('Sale Information')}</Text>
-                
-                {sale.customer_name && (
-                  <View style={styles.infoRow}>
-                    <Text style={styles.infoLabel}>{t('Customer Name:')}</Text>
-                    <Text style={styles.infoValue}>{sale.customer_name}</Text>
-                  </View>
-                )}
-                
-                {sale.customer_phone && (
-                  <View style={styles.infoRow}>
-                    <Text style={styles.infoLabel}>{t('Customer Phone:')}</Text>
-                    <Text style={styles.infoValue}>{sale.customer_phone}</Text>
-                  </View>
-                )}
-                
-                <View style={styles.infoRow}>
-                  <Text style={styles.infoLabel}>{t('Payment Method:')}</Text>
-                  <Text style={styles.infoValue}>
-                    {sale.payment_method === 'mobile' || sale.payment_method === 'mobile_wallet'
-                      ? t('Mobile')
-                      : sale.payment_method === 'card'
-                      ? t('Card')
-                      : sale.payment_method === 'credit'
-                      ? t('Credit')
-                      : t('Cash')}
-                  </Text>
-                </View>
-
-                {sale.payment_method === 'credit' && (
-                  <View style={styles.infoRow}>
-                    <Text style={styles.infoLabel}>{t('Status:')}</Text>
-                    {sale.is_paid ? (
-                      <View style={styles.paidBadge}>
-                        <Text style={styles.paidBadgeText}>✓ {t('Paid')}</Text>
+              <View style={[styles.contentWrapper, isDesktop && styles.desktopWrapper]}>
+                <View style={[styles.mainContent, isDesktop && styles.desktopMainContent]}>
+                  <View style={[styles.section, isDesktop && styles.desktopSection]}>
+                    <Text style={[styles.sectionTitle, isDesktop && styles.desktopSectionTitle]}>{t('Sale Information')}</Text>
+                    
+                    {sale.customer_name && (
+                      <View style={[styles.infoRow, isDesktop && styles.desktopInfoRow]}>
+                        <Text style={[styles.infoLabel, isDesktop && styles.desktopInfoLabel]}>{t('Customer Name:')}</Text>
+                        <Text style={[styles.infoValue, isDesktop && styles.desktopInfoValue]}>{sale.customer_name}</Text>
                       </View>
-                    ) : (
-                      <View style={styles.unpaidBadge}>
-                        <Text style={styles.unpaidBadgeText}>◯ {t('Pending')}</Text>
+                    )}
+                    
+                    {sale.customer_phone && (
+                      <View style={[styles.infoRow, isDesktop && styles.desktopInfoRow]}>
+                        <Text style={[styles.infoLabel, isDesktop && styles.desktopInfoLabel]}>{t('Customer Phone:')}</Text>
+                        <Text style={[styles.infoValue, isDesktop && styles.desktopInfoValue]}>{sale.customer_phone}</Text>
+                      </View>
+                    )}
+                    
+                    <View style={[styles.infoRow, isDesktop && styles.desktopInfoRow]}>
+                      <Text style={[styles.infoLabel, isDesktop && styles.desktopInfoLabel]}>{t('Payment Method:')}</Text>
+                      <Text style={[styles.infoValue, isDesktop && styles.desktopInfoValue]}>
+                        {sale.payment_method === 'mobile' || sale.payment_method === 'mobile_wallet'
+                          ? t('Mobile')
+                          : sale.payment_method === 'card'
+                          ? t('Card')
+                          : sale.payment_method === 'credit'
+                          ? t('Credit')
+                          : t('Cash')}
+                      </Text>
+                    </View>
+
+                    {sale.payment_method === 'credit' && (
+                      <View style={[styles.infoRow, isDesktop && styles.desktopInfoRow]}>
+                        <Text style={[styles.infoLabel, isDesktop && styles.desktopInfoLabel]}>{t('Status:')}</Text>
+                        {sale.is_paid ? (
+                          <View style={styles.paidBadge}>
+                            <Text style={styles.paidBadgeText}>✓ {t('Paid')}</Text>
+                          </View>
+                        ) : (
+                          <View style={styles.unpaidBadge}>
+                            <Text style={styles.unpaidBadgeText}>◯ {t('Pending')}</Text>
+                          </View>
+                        )}
+                      </View>
+                    )}
+
+                    {sale.notes && (
+                      <View style={[styles.notesContainer, isDesktop && styles.desktopNotesContainer]}>
+                        <Text style={[styles.notesLabel, isDesktop && styles.desktopNotesLabel]}>{t('Notes:')}</Text>
+                        <Text style={[styles.notesText, isDesktop && styles.desktopNotesText]}>{sale.notes}</Text>
                       </View>
                     )}
                   </View>
-                )}
 
-                {sale.notes && (
-                  <View style={styles.notesContainer}>
-                    <Text style={styles.notesLabel}>{t('Notes:')}</Text>
-                    <Text style={styles.notesText}>{sale.notes}</Text>
-                  </View>
-                )}
-              </View>
+                  <View style={[styles.section, isDesktop && styles.desktopSection]}>
+                    <Text style={[styles.sectionTitle, isDesktop && styles.desktopSectionTitle]}>{t('Items')}</Text>
+                    {sale.items.map((item, index) => (
+                      <View key={index} style={[styles.itemRow, isDesktop && styles.desktopItemRow]}>
+                        <View style={[styles.itemInfo, isDesktop && styles.desktopItemInfo]}>
+                          <Text style={[styles.itemName, isDesktop && styles.desktopItemName]}>{item.item_name}</Text>
+                          <Text style={[styles.itemOwner, isDesktop && styles.desktopItemOwner]}>{t('Owner')}: {item.owner_name}</Text>
+                          <Text style={[styles.itemDetails, isDesktop && styles.desktopItemDetails]}>
+                            {item.quantity} × {formatPrice(item.unit_price)}
+                          </Text>
+                        </View>
+                        <Text style={[styles.itemTotal, isDesktop && styles.desktopItemTotal]}>{formatPrice(Number(item.total_price))}</Text>
+                      </View>
+                    ))}
 
-              <View style={styles.section}>
-                <Text style={styles.sectionTitle}>{t('Items')}</Text>
-                {sale.items.map((item, index) => (
-                  <View key={index} style={styles.itemRow}>
-                    <View style={styles.itemInfo}>
-                      <Text style={styles.itemName}>{item.item_name}</Text>
-                      <Text style={styles.itemOwner}>{t('Owner')}: {item.owner_name}</Text>
-                      <Text style={styles.itemDetails}>
-                        {item.quantity} × {formatPrice(item.unit_price)}
-                      </Text>
+                    <View style={[styles.totalRow, isDesktop && styles.desktopTotalRow]}>
+                      <Text style={[styles.totalLabel, isDesktop && styles.desktopTotalLabel]}>{t('Total:')}</Text>
+                      <Text style={[styles.totalValue, isDesktop && styles.desktopTotalValue]}>{formatPrice(Number(sale.total_amount))}</Text>
                     </View>
-                    <Text style={styles.itemTotal}>{formatPrice(Number(item.total_price))}</Text>
                   </View>
-                ))}
+                </View>
 
-                <View style={styles.totalRow}>
-                  <Text style={styles.totalLabel}>{t('Total:')}</Text>
-                  <Text style={styles.totalValue}>{formatPrice(Number(sale.total_amount))}</Text>
+                {!sale.is_paid && (
+                  <View style={[styles.actionButtonsContainer, isDesktop && styles.desktopActionButtonsContainer]}>
+                    <TouchableOpacity
+                      style={[styles.button, styles.editButton, isDesktop && styles.desktopButton]}
+                      onPress={() => setIsEditing(true)}
+                    >
+                      <Text style={[styles.buttonText, isDesktop && styles.desktopButtonText]}>✏️ {t('Edit')}</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={[styles.button, styles.deleteButton, isDesktop && styles.desktopButton]}
+                      onPress={handleDeleteSale}
+                    >
+                      <Text style={[styles.buttonText, isDesktop && styles.desktopButtonText]}>🗑️ {t('Delete')}</Text>
+                    </TouchableOpacity>
+                  </View>
+                )}
+
+                {/* Print Receipt Button */}
+                <View style={[styles.printButtonContainer, isDesktop && styles.desktopPrintButtonContainer]}>
+                  <PrintReceipt
+                    receiptData={formatReceiptData(sale)}
+                    buttonText={t('Print Receipt')}
+                    buttonStyle={[styles.printReceiptButton, isDesktop && styles.desktopPrintReceiptButton]}
+                    onPrintSuccess={() => {
+                      console.log('Receipt printed successfully');
+                    }}
+                    onPrintError={(error) => {
+                      console.error('Print error:', error);
+                    }}
+                  />
                 </View>
               </View>
-
-              {!sale.is_paid && (
-                <View style={styles.actionButtonsContainer}>
-                  <TouchableOpacity
-                    style={[styles.button, styles.editButton]}
-                    onPress={() => setIsEditing(true)}
-                  >
-                    <Text style={styles.buttonText}>✏️ {t('Edit')}</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    style={[styles.button, styles.deleteButton]}
-                    onPress={handleDeleteSale}
-                  >
-                    <Text style={styles.buttonText}>🗑️ {t('Delete')}</Text>
-                  </TouchableOpacity>
-                </View>
-              )}
             </>
           ) : (
             // Edit Mode
             <>
-              <View style={styles.editHeader}>
-                <Text style={styles.editTitle}>{t('Edit Sale')} #{sale.id}</Text>
+              <View style={[styles.editHeader, isDesktop && [styles.desktopEditHeader, styles.desktopFullWidthHeader]]}>
+                <Text style={[styles.editTitle, isDesktop && styles.desktopEditTitle]}>{t('Edit Sale')} #{sale.id}</Text>
               </View>
 
-              <View style={styles.section}>
-                <Text style={styles.sectionTitle}>{t('Customer Information')}</Text>
-                
-                <TextInput
-                  style={styles.input}
-                  placeholder={t('Customer Name')}
-                  value={editCustomerName}
-                  onChangeText={setEditCustomerName}
-                  placeholderTextColor={placeholderTextColor}
-                />
-                
-                <TextInput
-                  style={styles.input}
-                  placeholder={t('Customer Phone')}
-                  value={editCustomerPhone}
-                  onChangeText={setEditCustomerPhone}
-                  placeholderTextColor={placeholderTextColor}
-                  keyboardType="phone-pad"
-                />
+              <View style={[styles.contentWrapper, isDesktop && styles.desktopWrapper]}>
+                <View style={[styles.mainContent, isDesktop && styles.desktopMainContent]}>
+                <View style={[styles.section, isDesktop && styles.desktopSection]}>
+                  <Text style={[styles.sectionTitle, isDesktop && styles.desktopSectionTitle]}>{t('Customer Information')}</Text>
+                  
+                  <TextInput
+                    style={[styles.input, isDesktop && styles.desktopInput]}
+                    placeholder={t('Customer Name')}
+                    value={editCustomerName}
+                    onChangeText={setEditCustomerName}
+                    placeholderTextColor={placeholderTextColor}
+                  />
+                  
+                  <TextInput
+                    style={[styles.input, isDesktop && styles.desktopInput]}
+                    placeholder={t('Customer Phone')}
+                    value={editCustomerPhone}
+                    onChangeText={setEditCustomerPhone}
+                    placeholderTextColor={placeholderTextColor}
+                    keyboardType="phone-pad"
+                  />
 
-                <Text style={styles.paymentLabel}>{t('Payment Method:')}</Text>
-                <View style={styles.paymentMethodsContainer}>
-                  {['cash', 'mobile', 'credit'].map((method) => (
-                    <TouchableOpacity
-                      key={method}
-                      style={[
-                        styles.paymentMethodButton,
-                        editPaymentMethod === method && styles.paymentMethodButtonActive,
-                      ]}
-                      onPress={() => setEditPaymentMethod(method)}
-                    >
-                      <Text
+                  <Text style={[styles.paymentLabel, isDesktop && styles.desktopPaymentLabel]}>{t('Payment Method:')}</Text>
+                  <View style={[styles.paymentMethodsContainer, isDesktop && styles.desktopPaymentMethodsContainer]}>
+                    {['cash', 'mobile', 'credit'].map((method) => (
+                      <TouchableOpacity
+                        key={method}
                         style={[
-                          styles.paymentMethodText,
-                          editPaymentMethod === method && styles.paymentMethodTextActive,
+                          styles.paymentMethodButton,
+                          isDesktop && styles.desktopPaymentMethodButton,
+                          editPaymentMethod === method && styles.paymentMethodButtonActive,
                         ]}
+                        onPress={() => setEditPaymentMethod(method)}
                       >
-                        {method === 'mobile' ? t('Mobile') : method === 'credit' ? t('Credit') : t('Cash')}
+                        <Text
+                          style={[
+                            styles.paymentMethodText,
+                            isDesktop && styles.desktopPaymentMethodText,
+                            editPaymentMethod === method && styles.paymentMethodTextActive,
+                          ]}
+                        >
+                          {method === 'mobile' ? t('Mobile') : method === 'credit' ? t('Credit') : t('Cash')}
+                        </Text>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+
+                  <TextInput
+                    style={[styles.input, styles.notesInput, isDesktop && styles.desktopNotesInput]}
+                    placeholder={t('Notes')}
+                    value={editNotes}
+                    onChangeText={setEditNotes}
+                    placeholderTextColor={placeholderTextColor}
+                    multiline
+                    numberOfLines={3}
+                  />
+                </View>
+
+                <View style={[styles.section, isDesktop && styles.desktopSection]}>
+                  <Text style={[styles.sectionTitle, isDesktop && styles.desktopSectionTitle]}>{t('Items')}</Text>
+
+                  {editItems.map((item, index) => (
+                    <View key={index} style={[styles.editItemRow, isDesktop && styles.desktopEditItemRow]}>
+                      <View style={[styles.editItemInfo, isDesktop && styles.desktopEditItemInfo]}>
+                        <Text style={[styles.itemName, isDesktop && styles.desktopItemName]}>{item.item_name}</Text>
+                        <Text style={[styles.itemOwner, isDesktop && styles.desktopItemOwner]}>{item.owner_name}</Text>
+                        <Text style={[styles.itemDetails, isDesktop && styles.desktopItemDetails]}>
+                          {formatPrice(item.unit_price)} each
+                        </Text>
+                      </View>
+                      <View style={[styles.editItemActions, isDesktop && styles.desktopEditItemActions]}>
+                        <TouchableOpacity
+                          style={[styles.quantityButton, isDesktop && styles.desktopQuantityButton]}
+                          onPress={() => updateEditItemQuantity(index, item.quantity - 1)}
+                        >
+                          <Text style={[styles.quantityButtonText, isDesktop && styles.desktopQuantityButtonText]}>−</Text>
+                        </TouchableOpacity>
+                        <Text style={[styles.quantityText, isDesktop && styles.desktopQuantityText]}>{item.quantity}</Text>
+                        <TouchableOpacity
+                          style={[styles.quantityButton, isDesktop && styles.desktopQuantityButton]}
+                          onPress={() => updateEditItemQuantity(index, item.quantity + 1)}
+                        >
+                          <Text style={[styles.quantityButtonText, isDesktop && styles.desktopQuantityButtonText]}>+</Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity
+                          style={[styles.removeButton, isDesktop && styles.desktopRemoveButton]}
+                          onPress={() => removeEditItem(index)}
+                        >
+                          <Text style={[styles.removeButtonText, isDesktop && styles.desktopRemoveButtonText]}>✕</Text>
+                        </TouchableOpacity>
+                      </View>
+                      <Text style={[styles.itemTotalPrice, isDesktop && styles.desktopItemTotalPrice]}>
+                        {formatPrice(Number(item.total_price))}
                       </Text>
-                    </TouchableOpacity>
+                    </View>
                   ))}
-                </View>
 
-                <TextInput
-                  style={[styles.input, styles.notesInput]}
-                  placeholder={t('Notes')}
-                  value={editNotes}
-                  onChangeText={setEditNotes}
-                  placeholderTextColor={placeholderTextColor}
-                  multiline
-                  numberOfLines={3}
-                />
-              </View>
+                  <TouchableOpacity
+                    style={[styles.addItemButton, isDesktop && styles.desktopAddItemButton]}
+                    onPress={() => setShowInventorySearch(!showInventorySearch)}
+                  >
+                    <Text style={[styles.addItemButtonText, isDesktop && styles.desktopAddItemButtonText]}>+ {t('Add Item')}</Text>
+                  </TouchableOpacity>
 
-              <View style={styles.section}>
-                <Text style={styles.sectionTitle}>{t('Items')}</Text>
-
-                {editItems.map((item, index) => (
-                  <View key={index} style={styles.editItemRow}>
-                    <View style={styles.editItemInfo}>
-                      <Text style={styles.itemName}>{item.item_name}</Text>
-                      <Text style={styles.itemOwner}>{item.owner_name}</Text>
-                      <Text style={styles.itemDetails}>
-                        {formatPrice(item.unit_price)} each
-                      </Text>
+                  {showInventorySearch && (
+                    <View style={[styles.searchContainer, isDesktop && styles.desktopSearchContainer]}>
+                      <TextInput
+                        style={[styles.searchInput, isDesktop && styles.desktopSearchInput]}
+                        placeholder={t('Search items...')}
+                        value={searchQuery}
+                        onChangeText={handleSearchInventory}
+                        placeholderTextColor={placeholderTextColor}
+                        autoCapitalize="none"
+                      />
+                      {searching ? (
+                        <ActivityIndicator size="small" color="#2196F3" />
+                      ) : inventoryItems.length > 0 ? (
+                        <ScrollView style={[styles.inventoryList, isDesktop && styles.desktopInventoryList]} nestedScrollEnabled keyboardShouldPersistTaps="handled">
+                          {inventoryItems.map((item) => (
+                            <TouchableOpacity
+                              key={item.id}
+                              style={[styles.inventoryItem, isDesktop && styles.desktopInventoryItem]}
+                              onPress={() => {
+                                addItemToEdit(item);
+                                setSearchQuery('');
+                                setInventoryItems([]);
+                              }}
+                            >
+                              <View style={styles.inventoryItemInfo}>
+                                <Text style={[styles.inventoryItemName, isDesktop && styles.desktopInventoryItemName]}>{item.name}</Text>
+                                <Text style={[styles.inventoryItemDetails, isDesktop && styles.desktopInventoryItemDetails]}>
+                                  {t('Stock')}: {item.quantity} | {t('Price')}: {formatPrice(item.selling_price)}
+                                </Text>
+                              </View>
+                            </TouchableOpacity>
+                          ))}
+                        </ScrollView>
+                      ) : searchQuery.trim() ? (
+                        <Text style={[styles.noItemsText, isDesktop && styles.desktopNoItemsText]}>{t('No items found')}</Text>
+                      ) : null}
                     </View>
-                    <View style={styles.editItemActions}>
-                      <TouchableOpacity
-                        style={styles.quantityButton}
-                        onPress={() => updateEditItemQuantity(index, item.quantity - 1)}
-                      >
-                        <Text style={styles.quantityButtonText}>−</Text>
-                      </TouchableOpacity>
-                      <Text style={styles.quantityText}>{item.quantity}</Text>
-                      <TouchableOpacity
-                        style={styles.quantityButton}
-                        onPress={() => updateEditItemQuantity(index, item.quantity + 1)}
-                      >
-                        <Text style={styles.quantityButtonText}>+</Text>
-                      </TouchableOpacity>
-                      <TouchableOpacity
-                        style={styles.removeButton}
-                        onPress={() => removeEditItem(index)}
-                      >
-                        <Text style={styles.removeButtonText}>✕</Text>
-                      </TouchableOpacity>
-                    </View>
-                    <Text style={styles.itemTotalPrice}>
-                      {formatPrice(Number(item.total_price))}
-                    </Text>
+                  )}
+
+                  <View style={[styles.editTotalRow, isDesktop && styles.desktopEditTotalRow]}>
+                    <Text style={[styles.totalLabel, isDesktop && styles.desktopTotalLabel]}>{t('Total:')}</Text>
+                    <Text style={[styles.totalValue, isDesktop && styles.desktopTotalValue]}>{formatPrice(calculateEditTotal())}</Text>
                   </View>
-                ))}
-
-                <TouchableOpacity
-                  style={styles.addItemButton}
-                  onPress={() => setShowInventorySearch(!showInventorySearch)}
-                >
-                  <Text style={styles.addItemButtonText}>+ {t('Add Item')}</Text>
-                </TouchableOpacity>
-
-                {showInventorySearch && (
-                  <View style={styles.searchContainer}>
-                    <TextInput
-                      style={styles.searchInput}
-                      placeholder={t('Search items...')}
-                      value={searchQuery}
-                      onChangeText={handleSearchInventory}
-                      placeholderTextColor={placeholderTextColor}
-                      autoCapitalize="none"
-                    />
-                    {searching ? (
-                      <ActivityIndicator size="small" color="#2196F3" />
-                    ) : inventoryItems.length > 0 ? (
-                      <ScrollView style={styles.inventoryList} nestedScrollEnabled keyboardShouldPersistTaps="handled">
-                        {inventoryItems.map((item) => (
-                          <TouchableOpacity
-                            key={item.id}
-                            style={styles.inventoryItem}
-                            onPress={() => {
-                              addItemToEdit(item);
-                              setSearchQuery('');
-                              setInventoryItems([]);
-                            }}
-                          >
-                            <View style={styles.inventoryItemInfo}>
-                              <Text style={styles.inventoryItemName}>{item.name}</Text>
-                              <Text style={styles.inventoryItemDetails}>
-                                {t('Stock')}: {item.quantity} | {t('Price')}: {formatPrice(item.selling_price)}
-                              </Text>
-                            </View>
-                          </TouchableOpacity>
-                        ))}
-                      </ScrollView>
-                    ) : searchQuery.trim() ? (
-                      <Text style={styles.noItemsText}>{t('No items found')}</Text>
-                    ) : null}
-                  </View>
-                )}
-
-                <View style={styles.editTotalRow}>
-                  <Text style={styles.totalLabel}>{t('Total:')}</Text>
-                  <Text style={styles.totalValue}>{formatPrice(calculateEditTotal())}</Text>
                 </View>
               </View>
 
-              <View style={styles.editActionButtonsContainer}>
+              <View style={[styles.editActionButtonsContainer, isDesktop && styles.desktopEditActionButtonsContainer]}>
                 <TouchableOpacity
-                  style={[styles.button, styles.cancelButton]}
+                  style={[styles.button, styles.cancelButton, isDesktop && styles.desktopCancelButton]}
                   onPress={() => {
                     setIsEditing(false);
                     fetchSaleDetails();
                   }}
                   disabled={updating}
                 >
-                  <Text style={styles.cancelButtonText}>{t('Cancel')}</Text>
+                  <Text style={[styles.cancelButtonText, isDesktop && styles.desktopCancelButtonText]}>{t('Cancel')}</Text>
                 </TouchableOpacity>
                 <TouchableOpacity
-                  style={[styles.button, styles.saveButton, updating && styles.disabledButton]}
+                  style={[styles.button, styles.saveButton, isDesktop && styles.desktopSaveButton, updating && styles.disabledButton]}
                   onPress={handleUpdateSale}
                   disabled={updating}
                 >
                   {updating ? (
                     <ActivityIndicator color="white" size="small" />
                   ) : (
-                    <Text style={styles.buttonText}>✓ {t('Save Changes')}</Text>
+                    <Text style={[styles.buttonText, isDesktop && styles.desktopButtonText]}>✓ {t('Save Changes')}</Text>
                   )}
                 </TouchableOpacity>
+              </View>
               </View>
             </>
           )}
@@ -943,5 +980,241 @@ const styles = StyleSheet.create({
     color: '#999',
     textAlign: 'center',
     paddingVertical: 15,
+  },
+  printButtonContainer: {
+    marginTop: 20,
+    marginBottom: 20,
+  },
+  printReceiptButton: {
+    backgroundColor: '#4CAF50',
+  },
+  // Desktop styles
+  desktopContentContainer: {
+    alignItems: 'center',
+  },
+  contentWrapper: {
+    width: '100%',
+  },
+  desktopWrapper: {
+    maxWidth: 1200,
+    width: '100%',
+    alignSelf: 'center',
+  },
+  desktopHeader: {
+    paddingHorizontal: 40,
+    paddingVertical: 30,
+  },
+  desktopFullWidthHeader: {
+    width: '100%',
+    maxWidth: 'none',
+    alignSelf: 'stretch',
+  },
+  desktopSaleTitle: {
+    fontSize: 32,
+  },
+  desktopSaleDate: {
+    fontSize: 16,
+    marginTop: 8,
+  },
+  desktopTotalAmount: {
+    fontSize: 36,
+  },
+  mainContent: {
+    // Default mobile layout
+  },
+  desktopMainContent: {
+    flexDirection: 'row',
+    gap: 20,
+    paddingHorizontal: 20,
+  },
+  desktopSection: {
+    flex: 1,
+    padding: 30,
+    marginHorizontal: 0,
+    marginBottom: 20,
+  },
+  desktopSectionTitle: {
+    fontSize: 20,
+    marginBottom: 20,
+  },
+  desktopInfoRow: {
+    paddingVertical: 16,
+  },
+  desktopInfoLabel: {
+    fontSize: 17,
+  },
+  desktopInfoValue: {
+    fontSize: 17,
+  },
+  desktopNotesContainer: {
+    paddingTop: 16,
+  },
+  desktopNotesLabel: {
+    fontSize: 17,
+    marginBottom: 10,
+  },
+  desktopNotesText: {
+    fontSize: 16,
+    lineHeight: 24,
+  },
+  desktopItemRow: {
+    paddingVertical: 16,
+  },
+  desktopItemInfo: {
+    marginRight: 20,
+  },
+  desktopItemName: {
+    fontSize: 17,
+  },
+  desktopItemOwner: {
+    fontSize: 14,
+    marginTop: 6,
+  },
+  desktopItemDetails: {
+    fontSize: 15,
+    marginTop: 6,
+  },
+  desktopItemTotal: {
+    fontSize: 17,
+  },
+  desktopTotalRow: {
+    paddingTop: 20,
+    marginTop: 15,
+  },
+  desktopTotalLabel: {
+    fontSize: 20,
+  },
+  desktopTotalValue: {
+    fontSize: 24,
+  },
+  desktopActionButtonsContainer: {
+    paddingHorizontal: 20,
+    paddingVertical: 20,
+    gap: 15,
+  },
+  desktopButton: {
+    paddingVertical: 16,
+  },
+  desktopButtonText: {
+    fontSize: 17,
+  },
+  desktopPrintButtonContainer: {
+    marginTop: 30,
+    marginBottom: 30,
+    alignItems: 'center',
+  },
+  desktopPrintReceiptButton: {
+    minWidth: 200,
+    paddingVertical: 16,
+    paddingHorizontal: 30,
+  },
+  desktopEditHeader: {
+    paddingHorizontal: 40,
+    paddingVertical: 30,
+  },
+  desktopEditTitle: {
+    fontSize: 32,
+  },
+  desktopInput: {
+    padding: 14,
+    fontSize: 16,
+  },
+  desktopPaymentLabel: {
+    fontSize: 17,
+    marginBottom: 12,
+  },
+  desktopPaymentMethodsContainer: {
+    gap: 12,
+    marginBottom: 16,
+  },
+  desktopPaymentMethodButton: {
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+  },
+  desktopPaymentMethodText: {
+    fontSize: 15,
+  },
+  desktopNotesInput: {
+    height: 100,
+  },
+  desktopEditItemRow: {
+    padding: 16,
+  },
+  desktopEditItemInfo: {
+    marginRight: 20,
+  },
+  desktopEditItemActions: {
+    gap: 8,
+  },
+  desktopQuantityButton: {
+    width: 32,
+    height: 32,
+  },
+  desktopQuantityButtonText: {
+    fontSize: 20,
+  },
+  desktopQuantityText: {
+    fontSize: 16,
+    minWidth: 30,
+  },
+  desktopRemoveButton: {
+    width: 32,
+    height: 32,
+  },
+  desktopRemoveButtonText: {
+    fontSize: 16,
+  },
+  desktopItemTotalPrice: {
+    fontSize: 17,
+    marginLeft: 15,
+  },
+  desktopAddItemButton: {
+    paddingVertical: 14,
+  },
+  desktopAddItemButtonText: {
+    fontSize: 17,
+  },
+  desktopSearchContainer: {
+    marginTop: 20,
+    marginBottom: 20,
+  },
+  desktopSearchInput: {
+    padding: 14,
+    fontSize: 16,
+  },
+  desktopInventoryList: {
+    maxHeight: 300,
+  },
+  desktopInventoryItem: {
+    padding: 14,
+  },
+  desktopInventoryItemName: {
+    fontSize: 16,
+  },
+  desktopInventoryItemDetails: {
+    fontSize: 14,
+    marginTop: 6,
+  },
+  desktopNoItemsText: {
+    fontSize: 15,
+    paddingVertical: 20,
+  },
+  desktopEditTotalRow: {
+    paddingTop: 20,
+    marginTop: 20,
+  },
+  desktopEditActionButtonsContainer: {
+    paddingHorizontal: 20,
+    paddingVertical: 30,
+    gap: 15,
+  },
+  desktopCancelButton: {
+    paddingVertical: 16,
+  },
+  desktopSaveButton: {
+    paddingVertical: 16,
+  },
+  desktopCancelButtonText: {
+    fontSize: 17,
   },
 });

@@ -2,19 +2,19 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
-  ActivityIndicator,
-  Alert,
-  FlatList,
-  KeyboardAvoidingView,
-  Modal,
-  Platform,
-  RefreshControl,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View,
+    ActivityIndicator,
+    Alert,
+    FlatList,
+    KeyboardAvoidingView,
+    Modal,
+    Platform,
+    RefreshControl,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TextInput,
+    TouchableOpacity,
+    View,
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNotifications } from '../../contexts/NotificationContext';
@@ -72,6 +72,7 @@ export default function SalesScreen() {
   const params = useLocalSearchParams<{ openModal?: string }>();
   const router = useRouter();
   const deviceType = useBreakpoint();
+  const isDesktop = deviceType === 'desktop' || deviceType === 'largeDesktop';
   useDocumentTitle('Sales Report - Hein Pharmacy');
   const [showSaleModal, setShowSaleModal] = useState(false);
   const [inventoryItems, setInventoryItems] = useState<InventoryItem[]>([]);
@@ -553,169 +554,334 @@ export default function SalesScreen() {
       )}
 
       <Modal visible={showSaleModal} animationType="slide">
-        <SafeAreaView style={styles.modalContainer}>
+        <SafeAreaView style={[styles.modalContainer, isDesktop && styles.modalContainerDesktop]}>
           <KeyboardAvoidingView 
             behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
             style={{ flex: 1 }}
           >
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>{t('New Sale')}</Text>
-              <TouchableOpacity onPress={() => setShowSaleModal(false)}>
-                <Text style={styles.closeButton}>✕</Text>
-              </TouchableOpacity>
-            </View>
+            <View style={[styles.modalContentWrapper, isDesktop && styles.modalContentWrapperDesktop]}>
+              <View style={[styles.modalHeader, isDesktop && styles.modalHeaderDesktop]}>
+                <Text style={[styles.modalTitle, isDesktop && styles.modalTitleDesktop]}>{t('New Sale')}</Text>
+                <TouchableOpacity onPress={() => setShowSaleModal(false)}>
+                  <Text style={styles.closeButton}>✕</Text>
+                </TouchableOpacity>
+              </View>
 
-            <ScrollView style={styles.modalContent} keyboardShouldPersistTaps="handled">
-            {/* Search and Add Items Section - Moved to top */}
-            <View style={styles.inventorySection}>
-              <Text style={styles.sectionTitle}>{t('Search & Add Items')}</Text>
-              <TextInput
-                style={styles.searchInput}
-                placeholder={t('Search inventory by name or category...')}
-                value={searchQuery}
-                onChangeText={setSearchQuery}
-                placeholderTextColor={placeholderTextColor}
-                autoCapitalize="none"
-              />
-              {searchQuery.trim() ? (
-                <ScrollView style={styles.inventoryList} nestedScrollEnabled keyboardShouldPersistTaps="handled">
-                  {loading ? (
-                    <ActivityIndicator size="large" color="#2196F3" style={{ marginTop: 20 }} />
-                  ) : inventoryItems.length === 0 ? (
-                    <Text style={styles.emptyText}>{t('No items found')}</Text>
-                  ) : (
-                    inventoryItems.map((item) => (
-                      <TouchableOpacity
-                        key={item.id}
-                        style={styles.inventoryItem}
-                        onPress={() => addItemToSale(item)}
-                      >
-                        <View style={styles.inventoryItemInfo}>
-                          <Text style={styles.inventoryItemName}>{item.name}</Text>
-                          <Text style={styles.inventoryItemDetails}>
-                            {t('Owner:')} {item.owner_name}
-                          </Text>
-                          <Text style={styles.inventoryItemDetails}>
-                            {item.category} • Stock: {item.quantity} • {formatPrice(item.selling_price)}
-                          </Text>
+              <ScrollView style={[styles.modalContent, isDesktop && styles.modalContentDesktop]} keyboardShouldPersistTaps="handled">
+              {isDesktop ? (
+                // Desktop layout: Side-by-side sections
+                <View style={styles.desktopFormContainer}>
+                  {/* Left column: Search and Cart */}
+                  <View style={styles.desktopLeftColumn}>
+                    {/* Search and Add Items Section */}
+                    <View style={[styles.inventorySection, styles.desktopSection]}>
+                      <Text style={[styles.sectionTitle, isDesktop && styles.sectionTitleDesktop]}>{t('Search & Add Items')}</Text>
+                      <TextInput
+                        style={[styles.searchInput, isDesktop && styles.searchInputDesktop]}
+                        placeholder={t('Search inventory by name or category...')}
+                        value={searchQuery}
+                        onChangeText={setSearchQuery}
+                        placeholderTextColor={placeholderTextColor}
+                        autoCapitalize="none"
+                      />
+                      {searchQuery.trim() ? (
+                        <ScrollView style={[styles.inventoryList, isDesktop && styles.inventoryListDesktop]} nestedScrollEnabled keyboardShouldPersistTaps="handled">
+                          {loading ? (
+                            <ActivityIndicator size="large" color="#2196F3" style={{ marginTop: 20 }} />
+                          ) : inventoryItems.length === 0 ? (
+                            <Text style={styles.emptyText}>{t('No items found')}</Text>
+                          ) : (
+                            inventoryItems.map((item) => (
+                              <TouchableOpacity
+                                key={item.id}
+                                style={[styles.inventoryItem, isDesktop && styles.inventoryItemDesktop]}
+                                onPress={() => addItemToSale(item)}
+                              >
+                                <View style={styles.inventoryItemInfo}>
+                                  <Text style={[styles.inventoryItemName, isDesktop && styles.inventoryItemNameDesktop]}>{item.name}</Text>
+                                  <Text style={[styles.inventoryItemDetails, isDesktop && styles.inventoryItemDetailsDesktop]}>
+                                    {t('Owner:')} {item.owner_name}
+                                  </Text>
+                                  <Text style={[styles.inventoryItemDetails, isDesktop && styles.inventoryItemDetailsDesktop]}>
+                                    {item.category} • Stock: {item.quantity} • {formatPrice(item.selling_price)}
+                                  </Text>
+                                </View>
+                                <TouchableOpacity
+                                  style={[styles.addButton, isDesktop && styles.addButtonDesktop]}
+                                  onPress={() => addItemToSale(item)}
+                                >
+                                  <Text style={styles.addButtonText}>+</Text>
+                                </TouchableOpacity>
+                              </TouchableOpacity>
+                            ))
+                          )}
+                        </ScrollView>
+                      ) : (
+                        <View style={styles.inventoryPlaceholder}>
+                          <Text style={styles.placeholderText}>🔍</Text>
+                          <Text style={styles.placeholderText}>{t('Start typing to search items')}</Text>
                         </View>
-                        <TouchableOpacity
-                          style={styles.addButton}
-                          onPress={() => addItemToSale(item)}
-                        >
-                          <Text style={styles.addButtonText}>+</Text>
-                        </TouchableOpacity>
-                      </TouchableOpacity>
-                    ))
-                  )}
-                </ScrollView>
-              ) : (
-                <View style={styles.inventoryPlaceholder}>
-                  <Text style={styles.placeholderText}>🔍</Text>
-                  <Text style={styles.placeholderText}>{t('Start typing to search items')}</Text>
-                </View>
-              )}
-            </View>
-
-            {/* Cart Section */}
-            <View style={styles.saleItemsSection}>
-              <Text style={styles.sectionTitle}>{t('Cart')} ({saleItems.length} {t('items')})</Text>
-              {saleItems.length === 0 ? (
-                <Text style={styles.emptyText}>{t('No items in cart')}</Text>
-              ) : (
-                <View>
-                  {saleItems.map((item) => (
-                    <View key={item.inventory_item_id} style={styles.cartItem}>
-                      <View style={styles.cartItemInfo}>
-                        <Text style={styles.cartItemName}>{item.name}</Text>
-                        <Text style={styles.cartItemOwner}>{t('Owner:')} {item.owner_name}</Text>
-                        <Text style={styles.cartItemPrice}>
-                          {formatPrice(item.unit_price)} × {item.quantity} = {formatPrice(item.total)}
-                        </Text>
-                      </View>
-                      <View style={styles.cartItemActions}>
-                        <TouchableOpacity
-                          style={styles.quantityButton}
-                          onPress={() => updateQuantity(item.inventory_item_id, item.quantity - 1)}
-                        >
-                          <Text style={styles.quantityButtonText}>−</Text>
-                        </TouchableOpacity>
-                        <Text style={styles.quantityText}>{item.quantity}</Text>
-                        <TouchableOpacity
-                          style={styles.quantityButton}
-                          onPress={() => updateQuantity(item.inventory_item_id, item.quantity + 1)}
-                        >
-                          <Text style={styles.quantityButtonText}>+</Text>
-                        </TouchableOpacity>
-                        <TouchableOpacity
-                          style={styles.removeButton}
-                          onPress={() => removeItemFromSale(item.inventory_item_id)}
-                        >
-                          <Text style={styles.removeButtonText}>✕</Text>
-                        </TouchableOpacity>
-                      </View>
+                      )}
                     </View>
-                  ))}
-                  <View style={styles.totalContainer}>
-                    <Text style={styles.totalLabel}>{t('Total:')}</Text>
-                    <Text style={styles.totalAmount}>{formatPrice(calculateTotal())}</Text>
+
+                    {/* Cart Section */}
+                    <View style={[styles.saleItemsSection, styles.desktopSection]}>
+                      <Text style={[styles.sectionTitle, isDesktop && styles.sectionTitleDesktop]}>{t('Cart')} ({saleItems.length} {t('items')})</Text>
+                      {saleItems.length === 0 ? (
+                        <Text style={styles.emptyText}>{t('No items in cart')}</Text>
+                      ) : (
+                        <View>
+                          {saleItems.map((item) => (
+                            <View key={item.inventory_item_id} style={[styles.cartItem, isDesktop && styles.cartItemDesktop]}>
+                              <View style={styles.cartItemInfo}>
+                                <Text style={[styles.cartItemName, isDesktop && styles.cartItemNameDesktop]}>{item.name}</Text>
+                                <Text style={[styles.cartItemOwner, isDesktop && styles.cartItemOwnerDesktop]}>{t('Owner:')} {item.owner_name}</Text>
+                                <Text style={[styles.cartItemPrice, isDesktop && styles.cartItemPriceDesktop]}>
+                                  {formatPrice(item.unit_price)} × {item.quantity} = {formatPrice(item.total)}
+                                </Text>
+                              </View>
+                              <View style={[styles.cartItemActions, isDesktop && styles.cartItemActionsDesktop]}>
+                                <TouchableOpacity
+                                  style={[styles.quantityButton, isDesktop && styles.quantityButtonDesktop]}
+                                  onPress={() => updateQuantity(item.inventory_item_id, item.quantity - 1)}
+                                >
+                                  <Text style={styles.quantityButtonText}>−</Text>
+                                </TouchableOpacity>
+                                <Text style={[styles.quantityText, isDesktop && styles.quantityTextDesktop]}>{item.quantity}</Text>
+                                <TouchableOpacity
+                                  style={[styles.quantityButton, isDesktop && styles.quantityButtonDesktop]}
+                                  onPress={() => updateQuantity(item.inventory_item_id, item.quantity + 1)}
+                                >
+                                  <Text style={styles.quantityButtonText}>+</Text>
+                                </TouchableOpacity>
+                                <TouchableOpacity
+                                  style={[styles.removeButton, isDesktop && styles.removeButtonDesktop]}
+                                  onPress={() => removeItemFromSale(item.inventory_item_id)}
+                                >
+                                  <Text style={styles.removeButtonText}>✕</Text>
+                                </TouchableOpacity>
+                              </View>
+                            </View>
+                          ))}
+                          <View style={[styles.totalContainer, isDesktop && styles.totalContainerDesktop]}>
+                            <Text style={[styles.totalLabel, isDesktop && styles.totalLabelDesktop]}>{t('Total:')}</Text>
+                            <Text style={[styles.totalAmount, isDesktop && styles.totalAmountDesktop]}>{formatPrice(calculateTotal())}</Text>
+                          </View>
+                        </View>
+                      )}
+                    </View>
+                  </View>
+
+                  {/* Right column: Customer Information */}
+                  <View style={styles.desktopRightColumn}>
+                    <View style={[styles.customerInfoSection, styles.desktopSection]}>
+                      <Text style={[styles.sectionTitle, isDesktop && styles.sectionTitleDesktop]}>{t('Customer Information (Optional)')}</Text>
+                      <TextInput
+                        style={[styles.input, isDesktop && styles.inputDesktop]}
+                        placeholder={t('Customer Name')}
+                        value={customerName}
+                        onChangeText={setCustomerName}
+                        placeholderTextColor={placeholderTextColor}
+                      />
+                      <TextInput
+                        style={[styles.input, isDesktop && styles.inputDesktop]}
+                        placeholder={t('Customer Phone')}
+                        value={customerPhone}
+                        onChangeText={setCustomerPhone}
+                        placeholderTextColor={placeholderTextColor}
+                        keyboardType="phone-pad"
+                      />
+                      <Text style={[styles.paymentLabel, isDesktop && styles.paymentLabelDesktop]}>{t('Payment Method:')}</Text>
+                      <View style={[styles.paymentMethods, isDesktop && styles.paymentMethodsDesktop]}>
+                        {['cash', 'mobile', 'credit'].map((method) => (
+                          <TouchableOpacity
+                            key={method}
+                            style={[
+                              styles.paymentMethodButton,
+                              isDesktop && styles.paymentMethodButtonDesktop,
+                              paymentMethod === method && styles.paymentMethodActive,
+                            ]}
+                            onPress={() => setPaymentMethod(method)}
+                          >
+                            <Text
+                              style={[
+                                styles.paymentMethodText,
+                                isDesktop && styles.paymentMethodTextDesktop,
+                                paymentMethod === method && styles.paymentMethodTextActive,
+                              ]}
+                            >
+                              {method === 'mobile' ? t('Mobile') : method === 'credit' ? t('Credit') : t('Cash')}
+                            </Text>
+                          </TouchableOpacity>
+                        ))}
+                      </View>
+                      <TextInput
+                        style={[styles.input, styles.notesInput, isDesktop && styles.notesInputDesktop]}
+                        placeholder={t('Notes')}
+                        value={notes}
+                        onChangeText={setNotes}
+                        placeholderTextColor={placeholderTextColor}
+                        multiline
+                        numberOfLines={3}
+                      />
+                    </View>
                   </View>
                 </View>
+              ) : (
+                // Mobile layout: Stacked sections
+                <>
+                  {/* Search and Add Items Section - Moved to top */}
+                  <View style={styles.inventorySection}>
+                    <Text style={styles.sectionTitle}>{t('Search & Add Items')}</Text>
+                    <TextInput
+                      style={styles.searchInput}
+                      placeholder={t('Search inventory by name or category...')}
+                      value={searchQuery}
+                      onChangeText={setSearchQuery}
+                      placeholderTextColor={placeholderTextColor}
+                      autoCapitalize="none"
+                    />
+                    {searchQuery.trim() ? (
+                      <ScrollView style={styles.inventoryList} nestedScrollEnabled keyboardShouldPersistTaps="handled">
+                        {loading ? (
+                          <ActivityIndicator size="large" color="#2196F3" style={{ marginTop: 20 }} />
+                        ) : inventoryItems.length === 0 ? (
+                          <Text style={styles.emptyText}>{t('No items found')}</Text>
+                        ) : (
+                          inventoryItems.map((item) => (
+                            <TouchableOpacity
+                              key={item.id}
+                              style={styles.inventoryItem}
+                              onPress={() => addItemToSale(item)}
+                            >
+                              <View style={styles.inventoryItemInfo}>
+                                <Text style={styles.inventoryItemName}>{item.name}</Text>
+                                <Text style={styles.inventoryItemDetails}>
+                                  {t('Owner:')} {item.owner_name}
+                                </Text>
+                                <Text style={styles.inventoryItemDetails}>
+                                  {item.category} • Stock: {item.quantity} • {formatPrice(item.selling_price)}
+                                </Text>
+                              </View>
+                              <TouchableOpacity
+                                style={styles.addButton}
+                                onPress={() => addItemToSale(item)}
+                              >
+                                <Text style={styles.addButtonText}>+</Text>
+                              </TouchableOpacity>
+                            </TouchableOpacity>
+                          ))
+                        )}
+                      </ScrollView>
+                    ) : (
+                      <View style={styles.inventoryPlaceholder}>
+                        <Text style={styles.placeholderText}>🔍</Text>
+                        <Text style={styles.placeholderText}>{t('Start typing to search items')}</Text>
+                      </View>
+                    )}
+                  </View>
+
+                  {/* Cart Section */}
+                  <View style={styles.saleItemsSection}>
+                    <Text style={styles.sectionTitle}>{t('Cart')} ({saleItems.length} {t('items')})</Text>
+                    {saleItems.length === 0 ? (
+                      <Text style={styles.emptyText}>{t('No items in cart')}</Text>
+                    ) : (
+                      <View>
+                        {saleItems.map((item) => (
+                          <View key={item.inventory_item_id} style={styles.cartItem}>
+                            <View style={styles.cartItemInfo}>
+                              <Text style={styles.cartItemName}>{item.name}</Text>
+                              <Text style={styles.cartItemOwner}>{t('Owner:')} {item.owner_name}</Text>
+                              <Text style={styles.cartItemPrice}>
+                                {formatPrice(item.unit_price)} × {item.quantity} = {formatPrice(item.total)}
+                              </Text>
+                            </View>
+                            <View style={styles.cartItemActions}>
+                              <TouchableOpacity
+                                style={styles.quantityButton}
+                                onPress={() => updateQuantity(item.inventory_item_id, item.quantity - 1)}
+                              >
+                                <Text style={styles.quantityButtonText}>−</Text>
+                              </TouchableOpacity>
+                              <Text style={styles.quantityText}>{item.quantity}</Text>
+                              <TouchableOpacity
+                                style={styles.quantityButton}
+                                onPress={() => updateQuantity(item.inventory_item_id, item.quantity + 1)}
+                              >
+                                <Text style={styles.quantityButtonText}>+</Text>
+                              </TouchableOpacity>
+                              <TouchableOpacity
+                                style={styles.removeButton}
+                                onPress={() => removeItemFromSale(item.inventory_item_id)}
+                              >
+                                <Text style={styles.removeButtonText}>✕</Text>
+                              </TouchableOpacity>
+                            </View>
+                          </View>
+                        ))}
+                        <View style={styles.totalContainer}>
+                          <Text style={styles.totalLabel}>{t('Total:')}</Text>
+                          <Text style={styles.totalAmount}>{formatPrice(calculateTotal())}</Text>
+                        </View>
+                      </View>
+                    )}
+                  </View>
+
+                  {/* Customer Information Section */}
+                  <View style={styles.customerInfoSection}>
+                    <Text style={styles.sectionTitle}>{t('Customer Information (Optional)')}</Text>
+                    <TextInput
+                      style={styles.input}
+                      placeholder={t('Customer Name')}
+                      value={customerName}
+                      onChangeText={setCustomerName}
+                      placeholderTextColor={placeholderTextColor}
+                    />
+                    <TextInput
+                      style={styles.input}
+                      placeholder={t('Customer Phone')}
+                      value={customerPhone}
+                      onChangeText={setCustomerPhone}
+                      placeholderTextColor={placeholderTextColor}
+                      keyboardType="phone-pad"
+                    />
+                    <View style={styles.paymentMethods}>
+                      {['cash', 'mobile', 'credit'].map((method) => (
+                        <TouchableOpacity
+                          key={method}
+                          style={[
+                            styles.paymentMethodButton,
+                            paymentMethod === method && styles.paymentMethodActive,
+                          ]}
+                          onPress={() => setPaymentMethod(method)}
+                        >
+                          <Text
+                            style={[
+                              styles.paymentMethodText,
+                              paymentMethod === method && styles.paymentMethodTextActive,
+                            ]}
+                          >
+                            {method === 'mobile' ? t('Mobile') : method === 'credit' ? t('Credit') : t('Cash')}
+                          </Text>
+                        </TouchableOpacity>
+                      ))}
+                    </View>
+                    <TextInput
+                      style={[styles.input, styles.notesInput]}
+                      placeholder={t('Notes')}
+                      value={notes}
+                      onChangeText={setNotes}
+                      placeholderTextColor={placeholderTextColor}
+                      multiline
+                      numberOfLines={3}
+                    />
+                  </View>
+                </>
               )}
-            </View>
+            </ScrollView>
 
-            {/* Customer Information Section */}
-            <View style={styles.customerInfoSection}>
-              <Text style={styles.sectionTitle}>{t('Customer Information (Optional)')}</Text>
-              <TextInput
-                style={styles.input}
-                placeholder={t('Customer Name')}
-                value={customerName}
-                onChangeText={setCustomerName}
-                placeholderTextColor={placeholderTextColor}
-              />
-              <TextInput
-                style={styles.input}
-                placeholder={t('Customer Phone')}
-                value={customerPhone}
-                onChangeText={setCustomerPhone}
-                placeholderTextColor={placeholderTextColor}
-                keyboardType="phone-pad"
-              />
-              <View style={styles.paymentMethods}>
-                {['cash', 'mobile', 'credit'].map((method) => (
-                  <TouchableOpacity
-                    key={method}
-                    style={[
-                      styles.paymentMethodButton,
-                      paymentMethod === method && styles.paymentMethodActive,
-                    ]}
-                    onPress={() => setPaymentMethod(method)}
-                  >
-                    <Text
-                      style={[
-                        styles.paymentMethodText,
-                        paymentMethod === method && styles.paymentMethodTextActive,
-                      ]}
-                    >
-                      {method === 'mobile' ? t('Mobile') : method === 'credit' ? t('Credit') : t('Cash')}
-                    </Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
-              <TextInput
-                style={[styles.input, styles.notesInput]}
-                placeholder={t('Notes')}
-                value={notes}
-                onChangeText={setNotes}
-                placeholderTextColor={placeholderTextColor}
-                multiline
-                numberOfLines={3}
-              />
-            </View>
-          </ScrollView>
-
-          <View style={styles.modalActions}>
+            <View style={[styles.modalActions, isDesktop && styles.modalActionsDesktop]}>
             <TouchableOpacity
               style={[styles.actionButton, styles.cancelButtonModal]}
               onPress={() => setShowSaleModal(false)}
@@ -734,6 +900,7 @@ export default function SalesScreen() {
                 <Text style={styles.submitButtonText}>{t('Complete Sale')}</Text>
               )}
             </TouchableOpacity>
+          </View>
           </View>
           </KeyboardAvoidingView>
         </SafeAreaView>
@@ -907,8 +1074,29 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#f5f5f5',
   },
+  modalContainerDesktop: {
+    backgroundColor: '#f5f5f5',
+  },
+  modalContentWrapper: {
+    flex: 1,
+  },
+  modalContentWrapperDesktop: {
+    backgroundColor: 'white',
+    borderRadius: 0,
+    width: '100%',
+    height: '100%',
+    maxHeight: 'none',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 10,
+  },
   modalContent: {
     flex: 1,
+  },
+  modalContentDesktop: {
+    padding: 0,
   },
   modalHeader: {
     flexDirection: 'row',
@@ -920,14 +1108,138 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: '#e0e0e0',
   },
+  modalHeaderDesktop: {
+    paddingHorizontal: 30,
+    paddingVertical: 25,
+  },
   modalTitle: {
     fontSize: 24,
     fontWeight: 'bold',
     color: '#333',
   },
+  modalTitleDesktop: {
+    fontSize: 28,
+  },
   closeButton: {
     fontSize: 28,
     color: '#666',
+  },
+  desktopFormContainer: {
+    flexDirection: 'row',
+    gap: 20,
+    padding: 20,
+  },
+  desktopLeftColumn: {
+    flex: 1,
+  },
+  desktopRightColumn: {
+    flex: 1,
+  },
+  desktopSection: {
+    marginBottom: 20,
+  },
+  sectionTitleDesktop: {
+    fontSize: 18,
+    marginBottom: 15,
+  },
+  searchInputDesktop: {
+    padding: 14,
+    fontSize: 16,
+  },
+  inventoryListDesktop: {
+    maxHeight: 400,
+  },
+  inventoryItemDesktop: {
+    padding: 14,
+  },
+  inventoryItemNameDesktop: {
+    fontSize: 16,
+  },
+  inventoryItemDetailsDesktop: {
+    fontSize: 14,
+    marginTop: 6,
+  },
+  addButtonDesktop: {
+    width: 40,
+    height: 40,
+  },
+  cartItemDesktop: {
+    padding: 14,
+  },
+  cartItemNameDesktop: {
+    fontSize: 16,
+  },
+  cartItemOwnerDesktop: {
+    fontSize: 14,
+    marginTop: 4,
+  },
+  cartItemPriceDesktop: {
+    fontSize: 15,
+    marginTop: 6,
+  },
+  cartItemActionsDesktop: {
+    gap: 10,
+  },
+  quantityButtonDesktop: {
+    width: 32,
+    height: 32,
+  },
+  quantityTextDesktop: {
+    fontSize: 16,
+    minWidth: 35,
+  },
+  removeButtonDesktop: {
+    width: 32,
+    height: 32,
+  },
+  totalContainerDesktop: {
+    paddingTop: 20,
+    marginTop: 15,
+  },
+  totalLabelDesktop: {
+    fontSize: 22,
+  },
+  totalAmountDesktop: {
+    fontSize: 26,
+  },
+  inputDesktop: {
+    padding: 14,
+    fontSize: 16,
+  },
+  paymentLabel: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#333',
+    marginBottom: 10,
+  },
+  paymentLabelDesktop: {
+    fontSize: 17,
+    marginBottom: 12,
+  },
+  paymentMethodsDesktop: {
+    gap: 12,
+    marginBottom: 15,
+  },
+  paymentMethodButtonDesktop: {
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+  },
+  paymentMethodTextDesktop: {
+    fontSize: 15,
+  },
+  notesInputDesktop: {
+    height: 80,
+  },
+  modalActions: {
+    flexDirection: 'row',
+    padding: 15,
+    backgroundColor: 'white',
+    borderTopWidth: 1,
+    borderTopColor: '#e0e0e0',
+  },
+  modalActionsDesktop: {
+    paddingHorizontal: 30,
+    paddingVertical: 20,
   },
   saleItemsSection: {
     backgroundColor: 'white',
@@ -1134,13 +1446,6 @@ const styles = StyleSheet.create({
     color: 'white',
     fontSize: 24,
     fontWeight: '600',
-  },
-  modalActions: {
-    flexDirection: 'row',
-    padding: 15,
-    backgroundColor: 'white',
-    borderTopWidth: 1,
-    borderTopColor: '#e0e0e0',
   },
   actionButton: {
     flex: 1,

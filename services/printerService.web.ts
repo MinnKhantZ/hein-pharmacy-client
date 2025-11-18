@@ -22,30 +22,128 @@ export interface ReceiptData {
   notes?: string;
 }
 
+const AGENT_PORTS = [3000, 3001, 3002]; // Try multiple ports
+
 class PrinterService {
+  private agentAvailable: boolean = false;
+  private agentUrl: string = '';
+
+  constructor() {
+    this.checkAgentAvailability();
+  }
+
+  /**
+   * Check if the local printing agent is running (try multiple ports)
+   */
+  private async checkAgentAvailability(): Promise<void> {
+    for (const port of AGENT_PORTS) {
+      try {
+        const url = `http://localhost:${port}`;
+        const response = await fetch(`${url}/health`, {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          signal: AbortSignal.timeout(2000), // 2 second timeout
+        });
+        
+        if (response.ok) {
+          const data = await response.json();
+          if (data.status === 'ok') {
+            this.agentAvailable = true;
+            this.agentUrl = url;
+            console.log('✅ Printing agent is available at:', url);
+            return;
+          }
+        }
+      } catch (error) {
+        // Try next port
+        continue;
+      }
+    }
+    
+    // No agent found
+    this.agentAvailable = false;
+    this.agentUrl = '';
+    console.log('⚠️ Printing agent not available, will use browser fallback');
+  }
+
   async enableBluetooth(): Promise<boolean> {
-    // For web, we'll use the browser's print dialog
+    await this.checkAgentAvailability();
     return true;
   }
 
   async scanPrinters(): Promise<PrinterDevice[]> {
-    // For web, return a default printer option
-    return [{ name: 'Browser Print', address: 'browser' }];
+    await this.checkAgentAvailability();
+    return [{ name: 'ESC/POS Printer (via Agent)', address: 'agent' }];
   }
 
   async connectToPrinter(address: string): Promise<void> {
-    // No connection needed for web
+    await this.checkAgentAvailability();
     return;
   }
 
   async disconnect(): Promise<void> {
-    // No disconnection needed for web
     return;
   }
 
+  /**
+   * Print receipt via local printing agent or fallback to browser print
+   */
   async printReceipt(data: ReceiptData): Promise<void> {
+    // Always check agent availability before printing
+    await this.checkAgentAvailability();
+
+    if (this.agentAvailable) {
+      try {
+        console.log('Attempting to print via agent...');
+        await this.printViaAgent(data);
+        console.log('Printed successfully via agent');
+        return;
+      } catch (error) {
+        console.error('Failed to print via agent, falling back to browser print:', error);
+        // Fall back to browser print if agent fails
+        this.agentAvailable = false;
+      }
+    }
+
+    // Fallback: Use browser print dialog
+    console.log('Using browser print fallback');
+    await this.printViaBrowser(data);
+  }
+
+  /**
+   * Print via local printing agent (ESC/POS)
+   */
+  private async printViaAgent(data: ReceiptData): Promise<void> {
+    if (!this.agentUrl) {
+      throw new Error('Agent URL not available');
+    }
+
+    const response = await fetch(`${this.agentUrl}/print`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(data),
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error || 'Failed to print via agent');
+    }
+
+    const result = await response.json();
+    if (!result.success) {
+      throw new Error(result.error || 'Print failed');
+    }
+  }
+
+  /**
+   * Fallback: Print via browser print dialog
+   */
+  private async printViaBrowser(data: ReceiptData): Promise<void> {
     try {
-      // Create a print-friendly HTML receipt
       const printWindow = window.open('', '_blank');
       
       if (!printWindow) {
@@ -257,7 +355,16 @@ class PrinterService {
   }
 
   async isConnected(): Promise<boolean> {
-    return true; // Always "connected" for web
+    await this.checkAgentAvailability();
+    return this.agentAvailable;
+  }
+
+  /**
+   * Check if printing agent is available
+   */
+  async isAgentAvailable(): Promise<boolean> {
+    await this.checkAgentAvailability();
+    return this.agentAvailable;
   }
 }
 

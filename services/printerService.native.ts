@@ -1,4 +1,4 @@
-import { BluetoothEscposPrinter, BluetoothManager } from 'react-native-bluetooth-escpos-printer';
+import { BluetoothEscposPrinter, BluetoothManager } from '@vardrz/react-native-bluetooth-escpos-printer';
 
 export interface PrinterDevice {
   name: string;

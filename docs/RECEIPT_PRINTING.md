@@ -15,7 +15,7 @@ This feature enables printing sales receipts on both mobile and web platforms us
 
 ### Utilities
 - **`utils/receiptFormatter.ts`** - Formats sale data for receipt printing
-- **`types/react-native-bluetooth-escpos-printer.d.ts`** - TypeScript declarations for printer library
+- **`types/react-native-bluetooth-escpos-printer.d.ts`** - TypeScript declarations for @vardrz/react-native-bluetooth-escpos-printer
 
 ### Integration Points
 - **`app/sales-details/[id].tsx`** - Print button added to sale details view
@@ -138,7 +138,7 @@ interface ReceiptData {
 ## Dependencies
 
 ### NPM Packages
-- `react-native-bluetooth-escpos-printer` - Bluetooth thermal printer support for mobile
+- `@vardrz/react-native-bluetooth-escpos-printer` - Bluetooth thermal printer support for mobile (forked and maintained version with TypeScript support)
 
 ### Native Dependencies
 The package includes native modules. After installation, rebuild your app:

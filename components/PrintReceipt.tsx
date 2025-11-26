@@ -78,12 +78,17 @@ const PrintReceipt: React.FC<PrintReceiptProps> = ({
     try {
       setScanning(true);
       const devices = await printerService.scanPrinters();
+      console.log('Devices returned from scanPrinters:', devices);
       setPrinters(devices);
       
       if (devices.length === 0) {
         Alert.alert(
           'No Printers Found',
-          'Please make sure your Bluetooth printer is paired with this device in Settings > Bluetooth.',
+          'Please check:\n\n' +
+          '1. Bluetooth is ON\n' +
+          '2. Location/GPS is ON (required for Bluetooth scanning)\n' +
+          '3. Printer is paired in Settings > Bluetooth\n' +
+          '4. Location permission is granted for this app',
           [
             { text: 'Cancel', style: 'cancel' },
             { text: 'Retry', onPress: scanForPrinters },
@@ -116,9 +121,6 @@ const PrintReceipt: React.FC<PrintReceiptProps> = ({
       setPrinting(true);
       await printerService.printReceipt(receiptData);
       
-      // Disconnect
-      await printerService.disconnect();
-      
       setShowPrinterModal(false);
       Alert.alert('Success', 'Receipt printed successfully!');
       onPrintSuccess?.();
@@ -127,6 +129,12 @@ const PrintReceipt: React.FC<PrintReceiptProps> = ({
       Alert.alert('Print Error', errorMessage);
       onPrintError?.(errorMessage);
     } finally {
+      // Always try to disconnect
+      try {
+        await printerService.disconnect();
+      } catch (e) {
+        // Ignore disconnect errors in cleanup
+      }
       setConnecting(false);
       setPrinting(false);
     }
@@ -182,6 +190,7 @@ const PrintReceipt: React.FC<PrintReceiptProps> = ({
                 </TouchableOpacity>
               </View>
 
+              <View style={{ flex: 1, overflow: 'hidden' }}>
               {scanning ? (
                 <View style={styles.centerContent}>
                   <ActivityIndicator size="large" color="#2196F3" />
@@ -202,6 +211,7 @@ const PrintReceipt: React.FC<PrintReceiptProps> = ({
                   renderItem={renderPrinterItem}
                   keyExtractor={(item) => item.address}
                   style={styles.printerList}
+                  scrollEnabled={true}
                 />
               ) : (
                 <View style={styles.centerContent}>
@@ -210,6 +220,7 @@ const PrintReceipt: React.FC<PrintReceiptProps> = ({
                   </Text>
                 </View>
               )}
+              </View>
 
               <View style={styles.modalFooter}>
                 <TouchableOpacity
@@ -261,7 +272,7 @@ const styles = StyleSheet.create({
   modalContent: {
     width: '90%',
     maxWidth: 400,
-    maxHeight: '80%',
+    height: '80%',
     borderRadius: 12,
     padding: 20,
     shadowColor: '#000',
@@ -269,6 +280,8 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.25,
     shadowRadius: 4,
     elevation: 5,
+    flex: 0,
+    flexDirection: 'column',
   },
   modalHeader: {
     flexDirection: 'row',

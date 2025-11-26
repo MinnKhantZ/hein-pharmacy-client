@@ -1,8 +1,59 @@
 import { BluetoothEscposPrinter, BluetoothManager } from '@vardrz/react-native-bluetooth-escpos-printer';
+import { PermissionsAndroid, Platform } from 'react-native';
 
 export interface PrinterDevice {
   name: string;
   address: string;
+}
+
+// Request Bluetooth permissions for Android 12+ (API level 31+)
+async function requestBluetoothPermissions(): Promise<boolean> {
+  if (Platform.OS !== 'android') {
+    return true;
+  }
+
+  try {
+    // For Android 12+ (API level 31+), we need BLUETOOTH_SCAN and BLUETOOTH_CONNECT
+    // For older versions, we need ACCESS_FINE_LOCATION for Bluetooth scanning
+    const androidVersion = Platform.Version;
+    
+    if (androidVersion >= 31) {
+      // Android 12+
+      const permissions = [
+        PermissionsAndroid.PERMISSIONS.BLUETOOTH_SCAN,
+        PermissionsAndroid.PERMISSIONS.BLUETOOTH_CONNECT,
+      ];
+      
+      const results = await PermissionsAndroid.requestMultiple(permissions);
+      
+      const allGranted = Object.values(results).every(
+        (result) => result === PermissionsAndroid.RESULTS.GRANTED
+      );
+      
+      if (!allGranted) {
+        console.warn('Bluetooth permissions not granted:', results);
+        return false;
+      }
+      
+      return true;
+    } else {
+      // Android 11 and below - need location permission for Bluetooth scanning
+      const locationPermission = await PermissionsAndroid.request(
+        PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION,
+        {
+          title: 'Location Permission',
+          message: 'This app needs location access to scan for Bluetooth printers.',
+          buttonPositive: 'OK',
+          buttonNegative: 'Cancel',
+        }
+      );
+      
+      return locationPermission === PermissionsAndroid.RESULTS.GRANTED;
+    }
+  } catch (error) {
+    console.error('Error requesting Bluetooth permissions:', error);
+    return false;
+  }
 }
 
 export interface ReceiptData {
@@ -25,6 +76,8 @@ export interface ReceiptData {
 }
 
 class PrinterService {
+  private connectedAddress: string | null = null;
+
   async enableBluetooth(): Promise<PrinterDevice[]> {
     try {
       const isEnabled = await BluetoothManager.isBluetoothEnabled();
@@ -54,10 +107,16 @@ class PrinterService {
 
   async scanPrinters(): Promise<PrinterDevice[]> {
     try {
-      // First ensure Bluetooth is enabled
+      // First request Bluetooth permissions (required for Android 12+, location for Android 11-)
+      const hasPermissions = await requestBluetoothPermissions();
+      if (!hasPermissions) {
+        throw new Error('Bluetooth permissions are required to scan for printers. Please grant permissions in app settings.');
+      }
+      
+      // Ensure Bluetooth is enabled
       const isEnabled = await BluetoothManager.isBluetoothEnabled();
       if (!isEnabled) {
-        // Try to enable Bluetooth, which also returns paired devices
+        // Try to enable Bluetooth, which also returns paired devices on Android
         const pairedDevicesRaw = (await BluetoothManager.enableBluetooth()) as any;
         const paired: PrinterDevice[] = [];
         
@@ -71,30 +130,58 @@ class PrinterService {
           }
         }
         
-        // Return paired devices if user enabled Bluetooth
+        // Return paired devices if found after enabling Bluetooth
         if (paired.length > 0) {
           return paired;
         }
       }
       
-      // Try scanning for new devices
+      // Try scanning for devices (this returns both paired and found devices)
       try {
+        console.log('Scanning for Bluetooth devices...');
         const scanResult = await (BluetoothManager as any).scanDevices();
+        console.log('Scan result:', scanResult);
+        
         const result = JSON.parse(scanResult);
         
         const pairedDevices: PrinterDevice[] = result.paired || [];
         const foundDevices: PrinterDevice[] = result.found || [];
         
+        console.log('Paired devices:', pairedDevices);
+        console.log('Found devices:', foundDevices);
+        
+        // Ensure all devices have a name, use address as fallback
+        const normalizedPairedDevices = pairedDevices.map(device => ({
+          ...device,
+          name: device.name || device.address
+        }));
+        
+        const normalizedFoundDevices = foundDevices.map(device => ({
+          ...device,
+          name: device.name || `Printer (${device.address})`
+        }));
+        
         // Combine both arrays and remove duplicates
-        const allDevices = [...pairedDevices, ...foundDevices];
+        const allDevices = [...normalizedPairedDevices, ...normalizedFoundDevices];
         const uniqueDevices = allDevices.filter((device, index, self) =>
           index === self.findIndex((d) => d.address === device.address)
         );
         
-        return uniqueDevices;
+        // If we have devices, return them
+        if (uniqueDevices.length > 0) {
+          return uniqueDevices;
+        }
+        
+        // If scanDevices returned empty, the scan might still be in progress
+        // or location services might be off. Return empty and show helpful message.
+        console.log('No devices found from scan');
+        return [];
       } catch (scanError: any) {
-        // If scan fails, return empty array and let user know to pair devices
-        console.warn('Scan failed:', scanError);
+        // If scan fails, log the error for debugging
+        console.warn('Scan failed with error:', scanError?.message || scanError);
+        
+        // On Android 11, if location is off, scanning will fail
+        // Return empty array with a helpful message
         return [];
       }
     } catch (error: any) {
@@ -113,18 +200,47 @@ class PrinterService {
 
   async connectToPrinter(address: string): Promise<void> {
     try {
+      // First, try to disconnect any existing connection
+      if (this.connectedAddress) {
+        try {
+          await BluetoothManager.disconnect(this.connectedAddress);
+        } catch (disconnectError) {
+          // Ignore disconnect errors, continue with new connection
+          console.warn('Disconnect before reconnect failed:', disconnectError);
+        }
+        this.connectedAddress = null;
+      }
+
+      // Also try to disconnect the target device in case it's in a stale state
+      try {
+        await BluetoothManager.disconnect(address);
+      } catch (disconnectError) {
+        // Ignore, device might not be connected
+      }
+
+      // Small delay to ensure the disconnection is complete
+      await new Promise(resolve => setTimeout(resolve, 500));
+
+      // Now attempt to connect
       await BluetoothManager.connect(address);
+      this.connectedAddress = address;
     } catch (error) {
       console.error('Failed to connect to printer:', error);
-      throw new Error('Failed to connect to printer');
+      this.connectedAddress = null;
+      throw new Error('Failed to connect to printer. Please ensure the printer is on and in range.');
     }
   }
 
   async disconnect(): Promise<void> {
     try {
-      await BluetoothManager.disconnect();
+      if (this.connectedAddress) {
+        await BluetoothManager.disconnect(this.connectedAddress);
+        this.connectedAddress = null;
+      }
     } catch (error) {
       console.error('Failed to disconnect:', error);
+      // Reset the address even if disconnect fails
+      this.connectedAddress = null;
     }
   }
 
@@ -228,8 +344,11 @@ class PrinterService {
       await BluetoothEscposPrinter.printText('Thank you for your business!\n', {});
       await BluetoothEscposPrinter.printText('================================\n', {});
       
-      // Feed paper
+      // Feed paper and cut
       await BluetoothEscposPrinter.printText('\n\n\n', {});
+      
+      // Trigger auto cutter
+      await BluetoothEscposPrinter.cutOnePoint();
       
     } catch (error) {
       console.error('Failed to print receipt:', error);

@@ -114,18 +114,25 @@ class PrinterService {
 
   /**
    * Print via local printing agent (ESC/POS)
+   * Uses image mode for Burmese text support
    */
   private async printViaAgent(data: ReceiptData): Promise<void> {
     if (!this.agentUrl) {
       throw new Error('Agent URL not available');
     }
 
+    // Use image mode to support Burmese/Myanmar characters
+    const printData = {
+      ...data,
+      useImageMode: true,
+    };
+
     const response = await fetch(`${this.agentUrl}/print`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify(data),
+      body: JSON.stringify(printData),
     });
 
     if (!response.ok) {
@@ -141,6 +148,7 @@ class PrinterService {
 
   /**
    * Fallback: Print via browser print dialog
+   * Synchronized with client native printing layout (ReceiptView.tsx)
    */
   private async printViaBrowser(data: ReceiptData): Promise<void> {
     try {
@@ -150,7 +158,10 @@ class PrinterService {
         throw new Error('Please allow pop-ups to print receipts');
       }
 
-      const paymentMethodText = data.paymentMethod.charAt(0).toUpperCase() + data.paymentMethod.slice(1);
+      // Translate payment method to Burmese (matching client)
+      const paymentMethodBurmese = data.paymentMethod === 'cash' ? 'လက်ငင်း' : 
+                                   data.paymentMethod === 'credit' ? 'အကြွေး' : 
+                                   data.paymentMethod.charAt(0).toUpperCase() + data.paymentMethod.slice(1);
 
       const receiptHTML = `
         <!DOCTYPE html>
@@ -159,6 +170,8 @@ class PrinterService {
           <meta charset="UTF-8">
           <title>Receipt #${data.saleId}</title>
           <style>
+            @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+Myanmar:wght@400;700&display=swap');
+            
             @media print {
               body {
                 margin: 0;
@@ -170,7 +183,7 @@ class PrinterService {
             }
             
             body {
-              font-family: 'Courier New', monospace;
+              font-family: 'Noto Sans Myanmar', 'Pyidaungsu', 'Myanmar Text', 'Courier New', monospace;
               max-width: 80mm;
               margin: 0 auto;
               padding: 20px;
@@ -257,9 +270,9 @@ class PrinterService {
         <body>
           <div class="receipt">
             <div class="header">
-              <div class="store-name">${data.storeName}</div>
-              ${data.storeAddress ? `<div>${data.storeAddress}</div>` : ''}
-              ${data.storePhone ? `<div>Tel: ${data.storePhone}</div>` : ''}
+              <div class="store-name">ဟိန်း ဆေးဆိုင်</div>
+              <div>ပြည်သူ့ဆေးရုံရှေ့၊ ချောက်မြို့</div>
+              <div>Ph: 09774772012, 09792222248</div>
             </div>
             
             <div class="divider"></div>
@@ -290,10 +303,10 @@ class PrinterService {
             <table class="items-table">
               <thead>
                 <tr>
-                  <th style="width: 45%;">Item</th>
-                  <th class="qty" style="width: 15%;">Qty</th>
-                  <th class="price" style="width: 20%;">Price</th>
-                  <th class="total" style="width: 20%;">Total</th>
+                  <th style="width: 40%;">ပစ္စည်းအမည်</th>
+                  <th class="qty" style="width: 10%;">အရေ</th>
+                  <th class="price" style="width: 20%;">ဈေးနှုန်း</th>
+                  <th class="total" style="width: 25%;">သင့်ငွေ</th>
                 </tr>
               </thead>
               <tbody>
@@ -301,8 +314,8 @@ class PrinterService {
                   <tr>
                     <td>${item.name}</td>
                     <td class="qty">${item.quantity}</td>
-                    <td class="price">${item.unitPrice.toFixed(0)}</td>
-                    <td class="total">${item.total.toFixed(0)}</td>
+                    <td class="price">${item.unitPrice.toLocaleString()}</td>
+                    <td class="total">${item.total.toLocaleString()}</td>
                   </tr>
                 `).join('')}
               </tbody>
@@ -311,26 +324,26 @@ class PrinterService {
             <div class="divider"></div>
             
             <div class="total-row">
-              <span>TOTAL:</span>
-              <span>${data.totalAmount.toFixed(0)}</span>
+              <span>စုစုပေါင်း:</span>
+              <span>${data.totalAmount.toLocaleString()} Ks</span>
             </div>
             
             <div class="divider"></div>
             
             <div class="info-row">
-              <span>Payment Method:</span>
-              <span>${paymentMethodText}</span>
+              <span>ငွေပေးချေမှု:</span>
+              <span>${paymentMethodBurmese}</span>
             </div>
             
             ${data.notes ? `
             <div style="margin-top: 10px;">
-              <div><strong>Notes:</strong></div>
+              <div><strong>မှတ်ချက်:</strong></div>
               <div>${data.notes}</div>
             </div>
             ` : ''}
             
             <div class="footer">
-              <div style="margin-top: 20px;">Thank you for your business!</div>
+              <div style="margin-top: 20px;">၀ယ်ယူအားပေးမှုကိုကျေးဇူးတင်ပါသည်</div>
             </div>
           </div>
           

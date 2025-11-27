@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
     ActivityIndicator,
@@ -13,6 +13,12 @@ import {
 } from 'react-native';
 import { useThemeColor } from '../hooks/use-theme-color';
 import type { ReceiptData } from '../utils/receiptFormatter';
+import ReceiptView from './ReceiptView';
+
+// Conditionally import view-shot only on native platforms
+const ViewShot = Platform.OS !== 'web' 
+  ? require('react-native-view-shot').default
+  : null;
 
 // PrinterDevice type definition
 interface PrinterDevice {
@@ -52,6 +58,24 @@ const PrintReceipt: React.FC<PrintReceiptProps> = ({
   const [scanning, setScanning] = useState(false);
   const [connecting, setConnecting] = useState(false);
   const [printing, setPrinting] = useState(false);
+  
+  // Ref for capturing receipt view as image
+  const receiptRef = useRef<any>(null);
+
+  // Capture receipt as image using ViewShot component
+  const captureReceipt = async (): Promise<string | null> => {
+    if (receiptRef.current && receiptRef.current.capture) {
+      try {
+        // ViewShot.capture() returns base64 directly when result: 'base64'
+        const base64 = await receiptRef.current.capture();
+        return base64;
+      } catch (error) {
+        console.error('Failed to capture receipt:', error);
+        return null;
+      }
+    }
+    return null;
+  };
 
   const handlePrintPress = async () => {
     if (Platform.OS === 'web') {
@@ -117,9 +141,18 @@ const PrintReceipt: React.FC<PrintReceiptProps> = ({
       // Connect to printer
       await printerService.connectToPrinter(printer.address);
       
-      // Print receipt
+      // Print receipt as image to support Burmese characters
       setPrinting(true);
-      await printerService.printReceipt(receiptData);
+      
+      const base64Image = await captureReceipt();
+      console.log('Captured image length:', base64Image?.length || 0);
+      if (base64Image) {
+        // Print the image
+        await printerService.printReceiptImage(base64Image, 80);
+      } else {
+        // Fallback to text-based printing if view-shot is not available
+        await printerService.printReceipt(receiptData);
+      }
       
       setShowPrinterModal(false);
       Alert.alert('Success', 'Receipt printed successfully!');
@@ -155,6 +188,23 @@ const PrintReceipt: React.FC<PrintReceiptProps> = ({
 
   return (
     <>
+      {/* Hidden receipt view for image capture - only on native platforms */}
+      {Platform.OS !== 'web' && ViewShot && (
+        <View style={styles.hiddenContainer}>
+          <ViewShot
+            ref={receiptRef}
+            options={{
+              format: 'png',
+              quality: 1,
+              result: 'base64',
+            }}
+            style={{ backgroundColor: '#FFFFFF' }}
+          >
+            <ReceiptView data={receiptData} width={576} />
+          </ViewShot>
+        </View>
+      )}
+      
       <TouchableOpacity
         style={[styles.printButton, buttonStyle]}
         onPress={handlePrintPress}
@@ -249,6 +299,12 @@ const PrintReceipt: React.FC<PrintReceiptProps> = ({
 };
 
 const styles = StyleSheet.create({
+  hiddenContainer: {
+    position: 'absolute',
+    top: -2000,
+    left: 0,
+    backgroundColor: '#FFFFFF',
+  },
   printButton: {
     backgroundColor: '#2196F3',
     paddingVertical: 12,

@@ -6,6 +6,10 @@ export interface PrinterDevice {
   address: string;
 }
 
+// Paper width in dots (384 for 80mm paper at 203 DPI, 384 is standard)
+const PAPER_WIDTH_80MM = 384;
+const PAPER_WIDTH_58MM = 384;
+
 // Request Bluetooth permissions for Android 12+ (API level 31+)
 async function requestBluetoothPermissions(): Promise<boolean> {
   if (Platform.OS !== 'android') {
@@ -244,6 +248,55 @@ class PrinterService {
     }
   }
 
+  /**
+   * Print receipt as image (supports Burmese/Myanmar characters)
+   * @param base64Image - Base64 encoded image data (without data:image prefix)
+   * @param paperSize - Paper size in mm (58 or 80)
+   */
+  async printReceiptImage(base64Image: string, paperSize: 58 | 80 = 80): Promise<void> {
+    try {
+      // Remove data URL prefix if present
+      const imageData = base64Image.replace(/^data:image\/\w+;base64,/, '');
+      
+      // Print image with proper options for 80mm (78mm printable) paper
+      // Use higher width for 3x scale image to maintain quality
+      await BluetoothEscposPrinter.printPic(imageData, {
+        width: 576,
+        left: 0,
+        paperSize: paperSize,
+      });
+      
+      // Feed paper with enough space before cutting
+      await BluetoothEscposPrinter.printText('\n\n\n\n\n', {});
+      
+      // Add a small delay to ensure the print buffer is flushed before cutting
+      // Image printing takes longer than text, so printer needs time to process
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
+      // Try multiple cut methods to ensure compatibility
+      try {
+        // Try cutOnePoint first (this worked for text-based printing)
+        await BluetoothEscposPrinter.cutOnePoint();
+      } catch (cutError1) {
+        console.warn('cutOnePoint failed, trying cutPaper:', cutError1);
+        try {
+          // Fallback to cutPaper
+          await (BluetoothEscposPrinter as any).cutPaper();
+        } catch (cutError2) {
+          console.warn('cutPaper also failed:', cutError2);
+          // Both cut methods failed, but printing succeeded - don't throw
+        }
+      }
+    } catch (error) {
+      console.error('Failed to print receipt image:', error);
+      throw new Error('Failed to print receipt image');
+    }
+  }
+
+  /**
+   * Print receipt using text commands (legacy method - doesn't support Burmese)
+   * @deprecated Use printReceiptImage for Burmese text support
+   */
   async printReceipt(data: ReceiptData): Promise<void> {
     try {
       // Print header

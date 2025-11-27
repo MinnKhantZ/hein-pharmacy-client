@@ -1,16 +1,17 @@
 import React, { useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
-    ActivityIndicator,
-    Alert,
-    FlatList,
-    Modal,
-    Platform,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View,
+  ActivityIndicator,
+  Alert,
+  FlatList,
+  Modal,
+  Platform,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from 'react-native';
+import { usePrinter } from '../contexts/PrinterContext';
 import { useThemeColor } from '../hooks/use-theme-color';
 import type { ReceiptData } from '../utils/receiptFormatter';
 import ReceiptView from './ReceiptView';
@@ -33,6 +34,14 @@ const printerServiceModule = Platform.OS === 'web'
 
 const printerService = printerServiceModule.default;
 
+// Button colors based on printer status
+const BUTTON_COLORS = {
+  notConnected: '#2196F3',    // Blue - no printer saved/selected
+  connected: '#4CAF50',       // Green - printer saved and available
+  connecting: '#FF9800',      // Orange - connecting in progress
+  error: '#f44336',           // Red - connection error
+};
+
 interface PrintReceiptProps {
   receiptData: ReceiptData;
   buttonText?: string;
@@ -53,6 +62,13 @@ const PrintReceipt: React.FC<PrintReceiptProps> = ({
   const textColor = useThemeColor({}, 'text');
   const borderColor = '#e0e0e0';
 
+  // Printer context
+  const {
+    savedPrinter,
+    setSavedPrinter,
+    clearSavedPrinter,
+  } = usePrinter();
+
   const [showPrinterModal, setShowPrinterModal] = useState(false);
   const [printers, setPrinters] = useState<PrinterDevice[]>([]);
   const [scanning, setScanning] = useState(false);
@@ -61,6 +77,38 @@ const PrintReceipt: React.FC<PrintReceiptProps> = ({
   
   // Ref for capturing receipt view as image
   const receiptRef = useRef<any>(null);
+
+  // Get button color based on printer status
+  const getButtonColor = () => {
+    if (Platform.OS === 'web') {
+      return BUTTON_COLORS.notConnected;
+    }
+    
+    if (connecting) {
+      return BUTTON_COLORS.connecting;
+    }
+    
+    if (savedPrinter) {
+      return BUTTON_COLORS.connected;
+    }
+    
+    return BUTTON_COLORS.notConnected;
+  };
+
+  // Get button text based on printer status
+  const getButtonText = () => {
+    if (buttonText) return buttonText;
+    
+    if (Platform.OS === 'web') {
+      return t('Print Receipt');
+    }
+    
+    if (savedPrinter) {
+      return `${t('Print')} (${savedPrinter.name})`;
+    }
+    
+    return t('Print Receipt');
+  };
 
   // Capture receipt as image using ViewShot component
   const captureReceipt = async (): Promise<string | null> => {
@@ -91,10 +139,74 @@ const PrintReceipt: React.FC<PrintReceiptProps> = ({
       } finally {
         setPrinting(false);
       }
+    } else if (savedPrinter) {
+      // If we have a saved printer, print directly without checking availability
+      await printWithSavedPrinter();
     } else {
-      // For mobile, show printer selection modal
+      // For mobile without saved printer, show printer selection modal
       setShowPrinterModal(true);
       scanForPrinters();
+    }
+  };
+
+  // Print using saved printer without showing modal
+  const printWithSavedPrinter = async () => {
+    if (!savedPrinter) return;
+    
+    try {
+      setConnecting(true);
+      
+      // Connect to saved printer
+      await printerService.connectToPrinter(savedPrinter.address);
+      
+      // Print receipt as image
+      setPrinting(true);
+      
+      const base64Image = await captureReceipt();
+      console.log('Captured image length:', base64Image?.length || 0);
+      if (base64Image) {
+        await printerService.printReceiptImage(base64Image, 80);
+      } else {
+        await printerService.printReceipt(receiptData);
+      }
+      
+      Alert.alert('Success', 'Receipt printed successfully!');
+      onPrintSuccess?.();
+    } catch (error: any) {
+      const errorMessage = error.message || 'Failed to print receipt';
+      
+      // If printing with saved printer fails, offer to select a new printer
+      Alert.alert(
+        'Print Error',
+        `${errorMessage}\n\nWould you like to select a different printer?`,
+        [
+          { text: 'Cancel', style: 'cancel' },
+          { 
+            text: 'Select Printer', 
+            onPress: () => {
+              setShowPrinterModal(true);
+              scanForPrinters();
+            }
+          },
+          {
+            text: 'Clear Saved Printer',
+            style: 'destructive',
+            onPress: async () => {
+              await clearSavedPrinter();
+            }
+          }
+        ]
+      );
+      onPrintError?.(errorMessage);
+    } finally {
+      // Always try to disconnect
+      try {
+        await printerService.disconnect();
+      } catch (e) {
+        // Ignore disconnect errors
+      }
+      setConnecting(false);
+      setPrinting(false);
     }
   };
 
@@ -141,6 +253,9 @@ const PrintReceipt: React.FC<PrintReceiptProps> = ({
       // Connect to printer
       await printerService.connectToPrinter(printer.address);
       
+      // Save the printer for future use
+      await setSavedPrinter(printer);
+      
       // Print receipt as image to support Burmese characters
       setPrinting(true);
       
@@ -155,7 +270,7 @@ const PrintReceipt: React.FC<PrintReceiptProps> = ({
       }
       
       setShowPrinterModal(false);
-      Alert.alert('Success', 'Receipt printed successfully!');
+      Alert.alert('Success', `Receipt printed successfully!\n\n"${printer.name}" has been saved as your default printer.`);
       onPrintSuccess?.();
     } catch (error: any) {
       const errorMessage = error.message || 'Failed to print receipt';
@@ -173,18 +288,35 @@ const PrintReceipt: React.FC<PrintReceiptProps> = ({
     }
   };
 
-  const renderPrinterItem = ({ item }: { item: PrinterDevice }) => (
-    <TouchableOpacity
-      style={[styles.printerItem, { borderColor }]}
-      onPress={() => handlePrinterSelect(item)}
-      disabled={connecting || printing}
-    >
-      <Text style={[styles.printerName, { color: textColor }]}>{item.name}</Text>
-      <Text style={[styles.printerAddress, { color: textColor, opacity: 0.6 }]}>
-        {item.address}
-      </Text>
-    </TouchableOpacity>
-  );
+  const renderPrinterItem = ({ item }: { item: PrinterDevice }) => {
+    const isSavedPrinter = savedPrinter?.address === item.address;
+    
+    return (
+      <TouchableOpacity
+        style={[
+          styles.printerItem, 
+          { borderColor: isSavedPrinter ? BUTTON_COLORS.connected : borderColor },
+          isSavedPrinter && styles.savedPrinterItem
+        ]}
+        onPress={() => handlePrinterSelect(item)}
+        disabled={connecting || printing}
+      >
+        <View style={styles.printerItemContent}>
+          <View style={styles.printerInfo}>
+            <Text style={[styles.printerName, { color: textColor }]}>{item.name}</Text>
+            <Text style={[styles.printerAddress, { color: textColor, opacity: 0.6 }]}>
+              {item.address}
+            </Text>
+          </View>
+          {isSavedPrinter && (
+            <View style={styles.savedBadge}>
+              <Text style={styles.savedBadgeText}>{t('Saved')}</Text>
+            </View>
+          )}
+        </View>
+      </TouchableOpacity>
+    );
+  };
 
   return (
     <>
@@ -206,15 +338,26 @@ const PrintReceipt: React.FC<PrintReceiptProps> = ({
       )}
       
       <TouchableOpacity
-        style={[styles.printButton, buttonStyle]}
+        style={[
+          styles.printButton, 
+          { backgroundColor: getButtonColor() },
+          buttonStyle
+        ]}
         onPress={handlePrintPress}
-        disabled={printing}
+        onLongPress={() => {
+          if (Platform.OS !== 'web') {
+            // Long press to change printer
+            setShowPrinterModal(true);
+            scanForPrinters();
+          }
+        }}
+        disabled={printing || connecting}
       >
-        {printing ? (
+        {printing || connecting ? (
           <ActivityIndicator size="small" color="white" />
         ) : (
           <Text style={styles.printButtonText}>
-            {buttonText || t('Print Receipt')}
+            {getButtonText()}
           </Text>
         )}
       </TouchableOpacity>
@@ -229,9 +372,16 @@ const PrintReceipt: React.FC<PrintReceiptProps> = ({
           <View style={styles.modalOverlay}>
             <View style={[styles.modalContent, { backgroundColor }]}>
               <View style={styles.modalHeader}>
-                <Text style={[styles.modalTitle, { color: textColor }]}>
-                  {t('Select Printer')}
-                </Text>
+                <View>
+                  <Text style={[styles.modalTitle, { color: textColor }]}>
+                    {t('Select Printer')}
+                  </Text>
+                  {savedPrinter && (
+                    <Text style={[styles.modalSubtitle, { color: textColor, opacity: 0.7 }]}>
+                      {t('Current')}: {savedPrinter.name}
+                    </Text>
+                  )}
+                </View>
                 <TouchableOpacity
                   onPress={() => setShowPrinterModal(false)}
                   style={styles.closeButton}
@@ -342,12 +492,16 @@ const styles = StyleSheet.create({
   modalHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
+    alignItems: 'flex-start',
     marginBottom: 20,
   },
   modalTitle: {
     fontSize: 20,
     fontWeight: '700',
+  },
+  modalSubtitle: {
+    fontSize: 14,
+    marginTop: 4,
   },
   closeButton: {
     padding: 5,
@@ -378,6 +532,30 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     borderWidth: 1,
     marginBottom: 10,
+  },
+  savedPrinterItem: {
+    borderWidth: 2,
+    backgroundColor: 'rgba(76, 175, 80, 0.1)',
+  },
+  printerItemContent: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  printerInfo: {
+    flex: 1,
+  },
+  savedBadge: {
+    backgroundColor: '#4CAF50',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 4,
+    marginLeft: 10,
+  },
+  savedBadgeText: {
+    color: 'white',
+    fontSize: 12,
+    fontWeight: '600',
   },
   printerName: {
     fontSize: 16,

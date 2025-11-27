@@ -11,6 +11,7 @@ import { useTranslation } from 'react-i18next';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { AuthProvider } from '../contexts/AuthContext';
 import { NotificationProvider } from '../contexts/NotificationContext';
+import { PrinterProvider } from '../contexts/PrinterContext';
 import { useBreakpoint } from '../utils/responsive';
 
 // Create a client
@@ -30,37 +31,39 @@ export default function RootLayout() {
       <QueryClientProvider client={queryClient}>
         <AuthProvider>
           <NotificationProvider>
-            <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-              <View
-                style={
-                  deviceType === 'desktop' || deviceType === 'largeDesktop'
-                    ? styles.desktopContainer
-                    : styles.mobileContainer
-                }
-              >
-                <Stack>
-                  <Stack.Screen name="(auth)" options={{ headerShown: false }} />
-                  <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-                  <Stack.Screen name="settings" options={{ headerShown: false }} />
-                  <Stack.Screen name="profile" options={{ headerShown: false }} />
-                  <Stack.Screen
-                    name="income-details"
-                    options={{
-                      title: t('All Records'),
-                      headerShown: true,
-                    }}
-                  />
-                  <Stack.Screen
-                    name="sales-details"
-                    options={{
-                      headerShown: false,
-                    }}
-                  />
-                  <Stack.Screen name="modal" options={{ presentation: 'modal', title: 'Modal' }} />
-                </Stack>
-                <StatusBar style="auto" />
-              </View>
-            </ThemeProvider>
+            <PrinterProvider>
+              <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
+                <View
+                  style={
+                    deviceType === 'desktop' || deviceType === 'largeDesktop'
+                      ? styles.desktopContainer
+                      : styles.mobileContainer
+                  }
+                >
+                  <Stack>
+                    <Stack.Screen name="(auth)" options={{ headerShown: false }} />
+                    <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+                    <Stack.Screen name="settings" options={{ headerShown: false }} />
+                    <Stack.Screen name="profile" options={{ headerShown: false }} />
+                    <Stack.Screen
+                      name="income-details"
+                      options={{
+                        title: t('All Records'),
+                        headerShown: true,
+                      }}
+                    />
+                    <Stack.Screen
+                      name="sales-details"
+                      options={{
+                        headerShown: false,
+                      }}
+                    />
+                    <Stack.Screen name="modal" options={{ presentation: 'modal', title: 'Modal' }} />
+                  </Stack>
+                  <StatusBar style="auto" />
+                </View>
+              </ThemeProvider>
+            </PrinterProvider>
           </NotificationProvider>
         </AuthProvider>
       </QueryClientProvider>

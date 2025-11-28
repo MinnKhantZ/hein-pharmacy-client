@@ -15,36 +15,43 @@ interface ReceiptViewProps {
  * For 78mm paper at 203 DPI: ~576 dots width
  * For better resolution, we render at 3x scale and let the printer scale down
  * This provides crisp, high-resolution text output
+ * 
+ * Layout synced with printing-agent/src/services/receiptImageGenerator.js
  */
 const ReceiptView: React.FC<ReceiptViewProps> = ({ data, width = 576 }) => {
   // Scale factor for better resolution (3x for high-resolution crisp text)
   const scale = 3;
   const scaledWidth = width * scale;
+  const padding = 12 * scale;
   
-  // Calculate column widths for items table (adjusted for 78mm paper)
-  // Item name gets more space, other columns are compact
-  const colName = Math.floor(scaledWidth * 0.40);
-  const colQty = Math.floor(scaledWidth * 0.10);
-  const colPrice = Math.floor(scaledWidth * 0.20);
-  const colTotal = Math.floor(scaledWidth * 0.25);
+  // Content width available for text and table (matching agent: contentWidth = paperWidth - (padding * 2))
+  const contentWidth = scaledWidth - (padding * 2);
+  
+  // Calculate column widths based on content width (matching agent's column percentages)
+  const colName = Math.floor(contentWidth * 0.45);
+  const colQty = Math.floor(contentWidth * 0.10);
+  const colPrice = Math.floor(contentWidth * 0.20);
+  const colTotal = Math.floor(contentWidth * 0.23);
 
   // Scaled font sizes - significantly larger for better readability on thermal paper
   const fontSize = {
-    storeName: 36 * scale,      // Large bold store name
-    storeInfo: 18 * scale,      // Store address/phone
-    sectionTitle: 18 * scale,   // Section headers
-    normal: 18 * scale,         // Regular text and item names
-    small: 16 * scale,          // Smaller info like dividers
-    total: 24 * scale,          // Large total amount
+    storeName: 42 * scale,      // Large bold store name
+    storeInfo: 21 * scale,      // Store address/phone
+    sectionTitle: 21 * scale,   // Section headers
+    normal: 21 * scale,         // Regular text and item names
+    small: 18 * scale,          // Smaller info like dividers
+    total: 28 * scale,          // Large total amount
   };
 
-  // Generate divider line that fits the width
-  const dividerChar = '═';
-  const thinDividerChar = '─';
-  // Adjust divider length based on font size for proper fit
-  const dividerLength = Math.floor(scaledWidth / (fontSize.small * 0.72));
-  const divider = dividerChar.repeat(dividerLength);
-  const thinDivider = thinDividerChar.repeat(dividerLength);
+  // Generate divider line that fits the available width exactly
+  // Use monospace-like calculation: divider with spacing "- - - - -"
+  // This matches the agent's spaced divider pattern
+  const dividerChar = '-';
+  // For monospace at this font size, estimate character width
+  // Using empirical ratio: each "- " pair takes roughly fontSize.small * 0.6
+  const charSpacePairWidth = fontSize.small * 0.48;
+  const dividerPairCount = Math.floor(contentWidth / charSpacePairWidth);
+  const divider = (dividerChar + ' ').repeat(dividerPairCount).trim();
 
   return (
     <View style={[styles.container, { width: scaledWidth, padding: 12 * scale }]}>
@@ -94,12 +101,12 @@ const ReceiptView: React.FC<ReceiptViewProps> = ({ data, width = 576 }) => {
       </Text>
 
       {/* Items Header */}
-      <View style={[styles.tableRow, { marginBottom: 6 * scale }]}>
+      <View style={[styles.tableRow, { marginBottom: 6 * scale, paddingHorizontal: 0 }]}>
         <Text style={[styles.tableHeader, { width: colName, fontSize: fontSize.normal, lineHeight: fontSize.normal * 1.3 }]}>
           ပစ္စည်းအမည်
         </Text>
         <Text style={[styles.tableHeader, styles.textCenter, { width: colQty, fontSize: fontSize.small, lineHeight: fontSize.small * 1.3 }]}>
-          အရေ
+          ဦးရေ
         </Text>
         <Text style={[styles.tableHeader, styles.textRight, { width: colPrice, fontSize: fontSize.normal, lineHeight: fontSize.normal * 1.3 }]}>
           ဈေးနှုန်း
@@ -109,16 +116,15 @@ const ReceiptView: React.FC<ReceiptViewProps> = ({ data, width = 576 }) => {
         </Text>
       </View>
 
-      <Text style={[styles.divider, { fontSize: fontSize.small, marginBottom: 6 * scale }]}>
-        {thinDivider}
+      <Text style={[styles.divider, { fontSize: fontSize.small, marginBottom: 6 * scale, marginHorizontal: 0, paddingHorizontal: 0 }]}>
+        {divider}
       </Text>
 
       {/* Items */}
       {data.items.map((item, index) => (
-        <View key={index} style={[styles.tableRow, { marginVertical: 4 * scale }]}>
+        <View key={index} style={[styles.tableRow, { marginVertical: 4 * scale, alignItems: 'flex-start', paddingHorizontal: 0 }]}>
           <Text 
-            style={[styles.tableCell, { width: colName, fontSize: fontSize.normal, lineHeight: fontSize.normal * 1.4 }]} 
-            numberOfLines={2}
+            style={[styles.tableCell, { width: colName, fontSize: fontSize.normal, lineHeight: fontSize.normal * 1.4 }]}
           >
             {item.name}
           </Text>
@@ -147,7 +153,7 @@ const ReceiptView: React.FC<ReceiptViewProps> = ({ data, width = 576 }) => {
       </View>
 
       <Text style={[styles.divider, { fontSize: fontSize.small, marginVertical: 6 * scale }]}>
-        {thinDivider}
+        {divider}
       </Text>
 
       {/* Payment Method */}
@@ -170,15 +176,12 @@ const ReceiptView: React.FC<ReceiptViewProps> = ({ data, width = 576 }) => {
       )}
 
       {/* Footer */}
-      <View style={[styles.footer, { marginTop: 14 * scale }]}>
+      <View style={[styles.footer, { marginTop: 14 * scale, marginBottom: 40 * scale }]}>
         <Text style={[styles.divider, { fontSize: fontSize.small, marginBottom: 10 * scale }]}>
           {divider}
         </Text>
         <Text style={[styles.footerText, { fontSize: fontSize.storeInfo, lineHeight: fontSize.storeInfo * 1.4 }]}>
           ၀ယ်ယူအားပေးမှုကိုကျေးဇူးတင်ပါသည်
-        </Text>
-        <Text style={[styles.divider, { fontSize: fontSize.small, marginTop: 10 * scale }]}>
-          {divider}
         </Text>
       </View>
     </View>
@@ -206,6 +209,7 @@ const styles = StyleSheet.create({
     color: '#000000',
     textAlign: 'center',
     letterSpacing: -1,
+    marginHorizontal: 0,
   },
   infoSection: {},
   infoRow: {
@@ -225,6 +229,7 @@ const styles = StyleSheet.create({
   },
   tableRow: {
     flexDirection: 'row',
+    paddingHorizontal: 0,
   },
   tableHeader: {
     fontWeight: 'bold',

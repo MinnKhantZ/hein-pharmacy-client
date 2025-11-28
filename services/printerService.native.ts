@@ -258,35 +258,25 @@ class PrinterService {
       // Remove data URL prefix if present
       const imageData = base64Image.replace(/^data:image\/\w+;base64,/, '');
       
+      // Calculate dynamic delay based on image size
+      // Estimate: ~10ms per KB for image transmission + 2s for printing + 1.5s for cutting
+      const byteLength = imageData.length;
+      const transmissionDelay = Math.ceil(byteLength / 1024) * 5;
+      const totalDelay = transmissionDelay + 1000; // transmission + print + cut
+
       // Print image with proper options for 80mm (78mm printable) paper
       // Use higher width for 3x scale image to maintain quality
+      // autoCut: true handles cutting after the image is fully printed
       await BluetoothEscposPrinter.printPic(imageData, {
         width: 576,
         left: 0,
         paperSize: paperSize,
+        autoCut: true,
       });
       
-      // Feed paper with enough space before cutting
-      await BluetoothEscposPrinter.printText('\n\n\n\n\n', {});
-      
-      // Add a small delay to ensure the print buffer is flushed before cutting
-      // Image printing takes longer than text, so printer needs time to process
-      await new Promise(resolve => setTimeout(resolve, 500));
-      
-      // Try multiple cut methods to ensure compatibility
-      try {
-        // Try cutOnePoint first (this worked for text-based printing)
-        await BluetoothEscposPrinter.cutOnePoint();
-      } catch (cutError1) {
-        console.warn('cutOnePoint failed, trying cutPaper:', cutError1);
-        try {
-          // Fallback to cutPaper
-          await (BluetoothEscposPrinter as any).cutPaper();
-        } catch (cutError2) {
-          console.warn('cutPaper also failed:', cutError2);
-          // Both cut methods failed, but printing succeeded - don't throw
-        }
-      }
+      // Wait for image printing and auto-cut to complete
+      console.log(`Waiting ${totalDelay}ms for printing (${transmissionDelay}ms transmission + 1000ms)`);
+      await new Promise(resolve => setTimeout(resolve, totalDelay));
     } catch (error) {
       console.error('Failed to print receipt image:', error);
       throw new Error('Failed to print receipt image');

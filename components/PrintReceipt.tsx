@@ -451,8 +451,11 @@ const PrintReceipt: React.FC<PrintReceiptProps> = ({
 const styles = StyleSheet.create({
   hiddenContainer: {
     position: 'absolute',
-    top: -2000,
-    left: 0,
+    top: -10000,
+    left: -10000,
+    opacity: 0,
+    pointerEvents: 'none',
+    zIndex: -9999,
     backgroundColor: '#FFFFFF',
   },
   printButton: {

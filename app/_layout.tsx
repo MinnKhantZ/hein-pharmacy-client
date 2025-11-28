@@ -12,6 +12,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { AuthProvider } from '../contexts/AuthContext';
 import { NotificationProvider } from '../contexts/NotificationContext';
 import { PrinterProvider } from '../contexts/PrinterContext';
+import { useLoadCustomFonts } from '../hooks/useLoadCustomFonts';
 import { useBreakpoint } from '../utils/responsive';
 
 // Create a client
@@ -25,6 +26,12 @@ export default function RootLayout() {
   const colorScheme = useColorScheme();
   const { t } = useTranslation();
   const deviceType = useBreakpoint();
+  const fontsLoaded = useLoadCustomFonts();
+
+  if (!fontsLoaded) {
+    // Optionally, show a splash or loader here
+    return null;
+  }
 
   return (
     <SafeAreaProvider>

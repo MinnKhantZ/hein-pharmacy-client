@@ -22,13 +22,31 @@ async function requestBluetoothPermissions(): Promise<boolean> {
     const androidVersion = Platform.Version;
     
     if (androidVersion >= 31) {
-      // Android 12+
+      // Android 12+ (API 31, 32, 33, etc.)
       const permissions = [
         PermissionsAndroid.PERMISSIONS.BLUETOOTH_SCAN,
         PermissionsAndroid.PERMISSIONS.BLUETOOTH_CONNECT,
       ];
       
+      // Check current permission status first
+      const scanStatus = await PermissionsAndroid.check(
+        PermissionsAndroid.PERMISSIONS.BLUETOOTH_SCAN
+      );
+      const connectStatus = await PermissionsAndroid.check(
+        PermissionsAndroid.PERMISSIONS.BLUETOOTH_CONNECT
+      );
+      
+      console.log('Current Bluetooth permissions:', { scanStatus, connectStatus });
+      
+      // If already granted, return immediately
+      if (scanStatus && connectStatus) {
+        return true;
+      }
+      
+      // Request permissions with clear messages
       const results = await PermissionsAndroid.requestMultiple(permissions);
+      
+      console.log('Permission request results:', results);
       
       const allGranted = Object.values(results).every(
         (result) => result === PermissionsAndroid.RESULTS.GRANTED
@@ -36,6 +54,13 @@ async function requestBluetoothPermissions(): Promise<boolean> {
       
       if (!allGranted) {
         console.warn('Bluetooth permissions not granted:', results);
+        // Check if permanently denied
+        const permanentlyDenied = Object.values(results).some(
+          (result) => result === PermissionsAndroid.RESULTS.NEVER_ASK_AGAIN
+        );
+        if (permanentlyDenied) {
+          console.error('Bluetooth permissions permanently denied - user must enable in settings');
+        }
         return false;
       }
       
@@ -184,6 +209,18 @@ class PrinterService {
         // If scan fails, log the error for debugging
         console.warn('Scan failed with error:', scanError?.message || scanError);
         
+        // On Android 13+, if we get NOT_STARTED, it usually means permissions weren't properly granted
+        // or the neverForLocation flag isn't set in AndroidManifest
+        if (scanError?.message?.includes('NOT_STARTED')) {
+          console.error('Bluetooth scan NOT_STARTED - This usually indicates:');
+          console.error('1. Permissions not granted (check app settings)');
+          console.error('2. AndroidManifest missing neverForLocation flag for BLUETOOTH_SCAN');
+          console.error('3. Need to rebuild the app after updating config plugin');
+          
+          // Return empty array - the paired devices are still accessible
+          return [];
+        }
+        
         // On Android 11, if location is off, scanning will fail
         // Return empty array with a helpful message
         return [];
@@ -193,7 +230,7 @@ class PrinterService {
       
       // Provide more specific error messages
       if (error.message && error.message.includes('NOT_STARTED')) {
-        throw new Error('Bluetooth scanning not available. Please pair your printer in device settings first.');
+        throw new Error('Bluetooth scanning not available. Please:\n1. Grant Bluetooth permissions\n2. Pair your printer in Settings\n3. Rebuild the app if needed');
       } else if (error.message && error.message.includes('PERMISSION')) {
         throw new Error('Bluetooth permission denied. Please grant Bluetooth permissions in app settings.');
       }

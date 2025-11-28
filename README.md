@@ -44,10 +44,14 @@ A comprehensive mobile application for pharmacy inventory and income management,
 - **Receipt Printing**: Print receipts on Bluetooth thermal printers (mobile) or browser (web)
 
 ### 🖨️ Receipt Printing (NEW)
-- **Bluetooth Printing**: Connect to thermal printers on mobile devices
+- **Bluetooth Printing**: Connect to thermal printers on mobile devices (Android 11+ compatible)
+- **Android 13 Support**: Special config plugin for Android 12+ Bluetooth permissions
 - **Web Printing**: Browser-based printing for web platform
 - **Professional Receipts**: Formatted receipts with store info, items, and totals
 - **Cross-Platform**: Works seamlessly on iOS, Android, and web
+- **Burmese/Myanmar Support**: Prints receipts with Myanmar text using image-based rendering
+
+> **Note**: For Android 13 devices, you must rebuild the app after setup. See [Android 13 Bluetooth Fix Guide](./docs/ANDROID_13_BLUETOOTH_FIX_QUICK.md) for details.
 
 ### 📦 Inventory Control
 - **Full CRUD**: Create, read, update, delete inventory items
@@ -303,6 +307,48 @@ Multi-language support with:
 - Date range selection
 - Owner-specific analytics
 - Export capabilities (planned)
+
+## 🐛 Troubleshooting
+
+### Bluetooth Printing Issues on Android 13+
+
+If you see "Scan failed with error: NOT_STARTED" on Android 13:
+
+1. **Rebuild the app** (required for config plugin):
+   ```bash
+   npx expo prebuild --clean
+   npx expo run:android
+   ```
+
+2. **Grant Bluetooth permissions** when prompted
+3. **Pair your printer** in device Bluetooth settings
+
+See detailed guide: [Android 13 Bluetooth Fix](./docs/ANDROID_13_BLUETOOTH_FIX_QUICK.md)
+
+### Common Issues
+
+**App won't start**:
+```bash
+# Clear cache and rebuild
+npx expo start --clear
+```
+
+**Can't connect to backend**:
+- Check `.env` file has correct `API_BASE_URL`
+- Ensure backend server is running
+- Check network connectivity
+
+**Push notifications not working**:
+- Grant notification permissions in device settings
+- Check Expo push notification credentials are configured
+
+**Build errors**:
+```bash
+# Clean node modules and reinstall
+rm -rf node_modules
+npm install
+npx expo prebuild --clean
+```
 
 ## 🚀 Deployment
 

@@ -91,6 +91,17 @@ export default function SettingsScreen() {
         </View>
 
         <View style={styles.settingsSection}>
+          <Text style={styles.sectionTitle}>{t('Printing')}</Text>
+          <TouchableOpacity
+            style={styles.settingItemLast}
+            onPress={() => router.push('/settings/print-layout')}
+          >
+            <Text style={styles.settingText}>{t('Print Layout Settings')}</Text>
+            <Text style={styles.settingArrow}>›</Text>
+          </TouchableOpacity>
+        </View>
+
+        <View style={styles.settingsSection}>
           <Text style={styles.sectionTitle}>{t('About')}</Text>
           <TouchableOpacity style={styles.settingItem}>
             <Text style={styles.settingText}>{t('Version')}</Text>

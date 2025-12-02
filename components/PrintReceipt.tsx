@@ -12,6 +12,7 @@ import {
   View,
 } from 'react-native';
 import { usePrinter } from '../contexts/PrinterContext';
+import { usePrintLayout } from '../contexts/PrintLayoutContext';
 import { useThemeColor } from '../hooks/use-theme-color';
 import type { ReceiptData } from '../utils/receiptFormatter';
 import ReceiptView from './ReceiptView';
@@ -68,6 +69,9 @@ const PrintReceipt: React.FC<PrintReceiptProps> = ({
     setSavedPrinter,
     clearSavedPrinter,
   } = usePrinter();
+
+  // Print layout configuration
+  const { config: printLayoutConfig } = usePrintLayout();
 
   const [showPrinterModal, setShowPrinterModal] = useState(false);
   const [printers, setPrinters] = useState<PrinterDevice[]>([]);
@@ -332,7 +336,7 @@ const PrintReceipt: React.FC<PrintReceiptProps> = ({
             }}
             style={{ backgroundColor: '#FFFFFF' }}
           >
-            <ReceiptView data={receiptData} width={576} />
+            <ReceiptView data={receiptData} width={printLayoutConfig.paperWidth} layoutConfig={printLayoutConfig} />
           </ViewShot>
         </View>
       )}

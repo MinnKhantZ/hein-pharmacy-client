@@ -39,6 +39,13 @@ export default function SettingsLayout() {
           headerShown: true,
         }}
       />
+      <Stack.Screen
+        name="print-layout"
+        options={{
+          title: 'Print Layout',
+          headerShown: true,
+        }}
+      />
     </Stack>
   );
 }

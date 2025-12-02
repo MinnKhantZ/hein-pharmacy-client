@@ -12,6 +12,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { AuthProvider } from '../contexts/AuthContext';
 import { NotificationProvider } from '../contexts/NotificationContext';
 import { PrinterProvider } from '../contexts/PrinterContext';
+import { PrintLayoutProvider } from '../contexts/PrintLayoutContext';
 import { useLoadCustomFonts } from '../hooks/useLoadCustomFonts';
 import { useBreakpoint } from '../utils/responsive';
 
@@ -39,37 +40,39 @@ export default function RootLayout() {
         <AuthProvider>
           <NotificationProvider>
             <PrinterProvider>
-              <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-                <View
-                  style={
-                    deviceType === 'desktop' || deviceType === 'largeDesktop'
-                      ? styles.desktopContainer
-                      : styles.mobileContainer
-                  }
-                >
-                  <Stack>
-                    <Stack.Screen name="(auth)" options={{ headerShown: false }} />
-                    <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-                    <Stack.Screen name="settings" options={{ headerShown: false }} />
-                    <Stack.Screen name="profile" options={{ headerShown: false }} />
-                    <Stack.Screen
-                      name="income-details"
-                      options={{
-                        title: t('All Records'),
-                        headerShown: true,
-                      }}
-                    />
-                    <Stack.Screen
-                      name="sales-details"
-                      options={{
-                        headerShown: false,
-                      }}
-                    />
-                    <Stack.Screen name="modal" options={{ presentation: 'modal', title: 'Modal' }} />
-                  </Stack>
-                  <StatusBar style="auto" />
-                </View>
-              </ThemeProvider>
+              <PrintLayoutProvider>
+                <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
+                  <View
+                    style={
+                      deviceType === 'desktop' || deviceType === 'largeDesktop'
+                        ? styles.desktopContainer
+                        : styles.mobileContainer
+                    }
+                  >
+                    <Stack>
+                      <Stack.Screen name="(auth)" options={{ headerShown: false }} />
+                      <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+                      <Stack.Screen name="settings" options={{ headerShown: false }} />
+                      <Stack.Screen name="profile" options={{ headerShown: false }} />
+                      <Stack.Screen
+                        name="income-details"
+                        options={{
+                          title: t('All Records'),
+                          headerShown: true,
+                        }}
+                      />
+                      <Stack.Screen
+                        name="sales-details"
+                        options={{
+                          headerShown: false,
+                        }}
+                      />
+                      <Stack.Screen name="modal" options={{ presentation: 'modal', title: 'Modal' }} />
+                    </Stack>
+                    <StatusBar style="auto" />
+                  </View>
+                </ThemeProvider>
+              </PrintLayoutProvider>
             </PrinterProvider>
           </NotificationProvider>
         </AuthProvider>

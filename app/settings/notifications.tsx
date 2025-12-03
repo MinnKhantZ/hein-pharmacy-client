@@ -2,15 +2,15 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
-  ActivityIndicator,
-  Alert,
-  Platform,
-  ScrollView,
-  StyleSheet,
-  Switch,
-  Text,
-  TouchableOpacity,
-  View,
+    ActivityIndicator,
+    Alert,
+    Platform,
+    ScrollView,
+    StyleSheet,
+    Switch,
+    Text,
+    TouchableOpacity,
+    View,
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNotifications } from '../../contexts/NotificationContext';
@@ -103,20 +103,7 @@ export default function NotificationsScreen() {
     }
 
     if (selectedDate) {
-      const originalMinutes = selectedDate.getMinutes();
-      // Round minutes to nearest multiple of 10
-      const roundedMinutes = Math.round(originalMinutes / 10) * 10;
-      selectedDate.setMinutes(roundedMinutes);
-
       const timeString = dateToTimeString(selectedDate);
-
-      // Show alert if time was rounded
-      if (originalMinutes !== roundedMinutes) {
-        Alert.alert(
-          t('Time Adjusted'),
-          t('Notification time has been rounded to the nearest 10-minute interval.')
-        );
-      }
 
       // Update temp notification settings with new time
       setTempNotificationSettings({
@@ -177,7 +164,7 @@ export default function NotificationsScreen() {
                 <Text style={styles.timePickerIcon}>🕐</Text>
               </TouchableOpacity>
               <Text style={styles.timePickerHint}>
-                {t('Daily low stock notifications will be sent at this time')} ({t('rounded to nearest 10 minutes')})
+                {t('Daily low stock notifications will be sent at this time')}
               </Text>
             </View>
           )}

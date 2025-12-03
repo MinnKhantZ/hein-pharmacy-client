@@ -1,25 +1,56 @@
+import Constants from 'expo-constants';
 import { router } from 'expo-router';
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 import {
-  ScrollView,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
+    ActivityIndicator,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View,
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useAppUpdates } from '../../hooks/useAppUpdates';
 import { changeLanguage as changeLanguageUtil } from '../../i18n';
 
 export default function SettingsScreen() {
   const { t, i18n } = useTranslation();
   const insets = useSafeAreaInsets();
+  const { 
+    isChecking, 
+    isDownloading, 
+    isUpdateAvailable, 
+    isUpdatePending,
+    isUpdatesAvailable,
+    checkAndPromptUpdate,
+    applyUpdate,
+  } = useAppUpdates();
 
   const changeLanguage = async (language: string) => {
     await changeLanguageUtil(language);
   };
 
   const currentLanguage = i18n.language;
+  
+  const appVersion = Constants.expoConfig?.version || '1.0.0';
+
+  const handleCheckUpdate = () => {
+    checkAndPromptUpdate({ 
+      alertTitle: t('Update Available'),
+      alertMessage: t('A new version of the app is available. Would you like to update now?'),
+      updateButtonText: t('Update Now'),
+      laterButtonText: t('Later'),
+    });
+  };
+
+  const getUpdateStatusText = () => {
+    if (isChecking) return t('Checking...');
+    if (isDownloading) return t('Downloading...');
+    if (isUpdatePending) return t('Restart to apply');
+    if (isUpdateAvailable) return t('Update available');
+    return t('Check for Updates');
+  };
 
   return (
     <SafeAreaView style={styles.container} edges={['top', 'left', 'right', 'bottom']}>
@@ -103,10 +134,31 @@ export default function SettingsScreen() {
 
         <View style={styles.settingsSection}>
           <Text style={styles.sectionTitle}>{t('About')}</Text>
-          <TouchableOpacity style={styles.settingItem}>
+          <View style={styles.settingItem}>
             <Text style={styles.settingText}>{t('Version')}</Text>
-            <Text style={styles.settingValue}>1.0.0</Text>
-          </TouchableOpacity>
+            <Text style={styles.settingValue}>{appVersion}</Text>
+          </View>
+          {isUpdatesAvailable && (
+            <TouchableOpacity
+              style={styles.settingItem}
+              onPress={isUpdatePending ? applyUpdate : handleCheckUpdate}
+              disabled={isChecking || isDownloading}
+            >
+              <Text style={styles.settingText}>{t('App Updates')}</Text>
+              <View style={styles.updateStatus}>
+                {(isChecking || isDownloading) && (
+                  <ActivityIndicator size="small" color="#2196F3" style={styles.updateLoader} />
+                )}
+                <Text style={[
+                  styles.settingValue,
+                  isUpdatePending && styles.updatePendingText,
+                  isUpdateAvailable && styles.updateAvailableText,
+                ]}>
+                  {getUpdateStatusText()}
+                </Text>
+              </View>
+            </TouchableOpacity>
+          )}
           <TouchableOpacity
             style={styles.settingItemLast}
             onPress={() => router.push('/settings/terms')}
@@ -192,5 +244,20 @@ const styles = StyleSheet.create({
   },
   languageButtonTextActive: {
     color: '#fff',
+  },
+  updateStatus: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  updateLoader: {
+    marginRight: 8,
+  },
+  updatePendingText: {
+    color: '#4CAF50',
+    fontWeight: '600',
+  },
+  updateAvailableText: {
+    color: '#2196F3',
+    fontWeight: '500',
   },
 });

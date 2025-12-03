@@ -13,6 +13,7 @@ import { AuthProvider } from '../contexts/AuthContext';
 import { NotificationProvider } from '../contexts/NotificationContext';
 import { PrinterProvider } from '../contexts/PrinterContext';
 import { PrintLayoutProvider } from '../contexts/PrintLayoutContext';
+import { useAppUpdates } from '../hooks/useAppUpdates';
 import { useLoadCustomFonts } from '../hooks/useLoadCustomFonts';
 import { useBreakpoint } from '../utils/responsive';
 
@@ -28,6 +29,9 @@ export default function RootLayout() {
   const { t } = useTranslation();
   const deviceType = useBreakpoint();
   const fontsLoaded = useLoadCustomFonts();
+  
+  // Initialize OTA updates - this will check for updates on app launch
+  useAppUpdates();
 
   if (!fontsLoaded) {
     // Optionally, show a splash or loader here

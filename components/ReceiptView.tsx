@@ -1,5 +1,6 @@
 import React from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { Image, PixelRatio, StyleSheet, Text, View } from 'react-native';
+
 import {
   defaultPrintFont,
   defaultPrintFontBold,
@@ -30,6 +31,10 @@ interface ReceiptViewProps {
  * 
  * All layout parameters are now configurable through PrintLayoutConfig.
  * Pass layoutConfig prop to customize, or it will use DEFAULT_PRINT_LAYOUT.
+ * 
+ * Divider length is automatically adjusted based on device PixelRatio to ensure
+ * exact fit across different screen densities. Calibrated for PixelRatio 2.75.
+ * Font scaling is disabled to prevent layout issues from system font size settings.
  */
 const ReceiptView: React.FC<ReceiptViewProps> = ({ 
   data, 
@@ -39,8 +44,14 @@ const ReceiptView: React.FC<ReceiptViewProps> = ({
   // Use config values with fallback to defaults
   const config = layoutConfig;
   
+  // Get device pixel ratio for consistent rendering across devices
+  const pixelRatio = PixelRatio.get();
+  
+  // Adjust paper width to ensure consistent physical pixel output
+  const effectivePaperWidth = config.paperWidth / pixelRatio;
+  
   // Base width from config, can be overridden by prop
-  const paperWidth = width ?? config.paperWidth;
+  const paperWidth = width ?? effectivePaperWidth;
   
   // Scale factor for better resolution
   const scale = config.scale;
@@ -49,6 +60,10 @@ const ReceiptView: React.FC<ReceiptViewProps> = ({
   
   // Content width available for text and table (matching agent: contentWidth = paperWidth - (padding * 2))
   const contentWidth = scaledWidth - (padding * 2);
+  
+  // Adjust divider character width ratio based on pixel ratio for exact fit
+  // Calibrated for PixelRatio 2.75 with ratio 0.7
+  const adjustedDividerCharWidthRatio = 0.7 * (2.75 / pixelRatio);
   
   // Calculate column widths based on content width (using configurable percentages)
   const colName = Math.floor(contentWidth * config.columnWidths.name);
@@ -84,7 +99,7 @@ const ReceiptView: React.FC<ReceiptViewProps> = ({
   // Generate divider line that fits the available width exactly
   // Use configurable char width ratio for divider calculation
   const dividerChar = '-';
-  const charSpacePairWidth = fontSize.small * config.dividerCharWidthRatio;
+  const charSpacePairWidth = fontSize.small * adjustedDividerCharWidthRatio;
   const dividerPairCount = Math.floor(contentWidth / charSpacePairWidth);
   const divider = (dividerChar + ' ').repeat(dividerPairCount).trim();
 
@@ -92,66 +107,75 @@ const ReceiptView: React.FC<ReceiptViewProps> = ({
     <View style={[styles.container, { width: scaledWidth, padding: config.paddingBase * scale }]}> 
       {/* Header */}
       <View style={styles.header}>
-        <Text style={[styles.storeName, { fontSize: fontSize.storeName, lineHeight: fontSize.storeName * lineHeights.default, fontFamily: defaultPrintFontHeavy }]}> 
-          ဟိန်း ဆေးဆိုင်
-        </Text>
-        <Text style={[styles.storeInfo, { fontSize: fontSize.storeInfo, marginTop: 6 * scale, lineHeight: fontSize.storeInfo * lineHeights.default, fontFamily: defaultPrintFont }]}> 
-          ပြည်သူ့ဆေးရုံရှေ့၊ ချောက်မြို့
-        </Text>
-        <Text style={[styles.storeInfo, { fontSize: fontSize.storeInfo, marginTop: 4 * scale, lineHeight: fontSize.storeInfo * lineHeights.default, fontFamily: defaultPrintFont }]}> 
-          Ph: 09774772012, 09792222248
-        </Text>
+        <View style={styles.headerRow}>
+          <Image 
+            source={require('../assets/images/logo-black.png')} 
+            style={[styles.logo, { width: 70 * scale, height: 70 * scale }]} 
+            resizeMode="contain"
+          />
+          <View style={styles.headerText}>
+            <Text style={[styles.storeName, { fontSize: fontSize.storeName, lineHeight: fontSize.storeName * lineHeights.default, fontFamily: defaultPrintFontHeavy }]} allowFontScaling={false}> 
+              ဟိန်း ဆေးဆိုင်
+            </Text>
+            <Text style={[styles.storeInfo, { fontSize: fontSize.storeInfo, marginTop: 6 * scale, lineHeight: fontSize.storeInfo * lineHeights.default, fontFamily: defaultPrintFont }]} allowFontScaling={false}> 
+              ပြည်သူ့ဆေးရုံရှေ့၊ ချောက်မြို့
+            </Text>
+            <Text style={[styles.storeInfo, { fontSize: fontSize.storeInfo, marginTop: 4 * scale, lineHeight: fontSize.storeInfo * lineHeights.default, fontFamily: defaultPrintFont }]} allowFontScaling={false}> 
+              Ph: 09774772012, 09792222248
+            </Text>
+          </View>
+        </View>
       </View>
 
-      <Text style={[styles.divider, { fontSize: fontSize.small, marginVertical: margins.dividerVertical, letterSpacing: config.dividerLetterSpacing, fontFamily: defaultPrintFont }]}> 
+      <Text style={[styles.divider, { fontSize: fontSize.small, marginVertical: margins.dividerVertical, letterSpacing: config.dividerLetterSpacing, fontFamily: defaultPrintFont }]} allowFontScaling={false}> 
         {divider}
       </Text>
 
       {/* Sale Info */}
       <View style={[styles.infoSection, { marginVertical: margins.infoSection }]}> 
         <View style={[styles.infoRow, { marginVertical: margins.infoRow }]}> 
-          <Text style={[styles.infoLabel, { fontSize: fontSize.normal, lineHeight: fontSize.normal * lineHeights.default, fontFamily: defaultPrintFontMedium }]}>Receipt #:</Text>
-          <Text style={[styles.infoValue, { fontSize: fontSize.normal, lineHeight: fontSize.normal * lineHeights.default, fontFamily: defaultPrintFont }]}>{data.saleId}</Text>
+          <Text style={[styles.infoLabel, { fontSize: fontSize.normal, lineHeight: fontSize.normal * lineHeights.default, fontFamily: defaultPrintFontMedium }]} allowFontScaling={false}>Receipt #:</Text>
+          <Text style={[styles.infoValue, { fontSize: fontSize.normal, lineHeight: fontSize.normal * lineHeights.default, fontFamily: defaultPrintFont }]} allowFontScaling={false}>{data.saleId}</Text>
         </View>
         <View style={[styles.infoRow, { marginVertical: margins.infoRow }]}> 
-          <Text style={[styles.infoLabel, { fontSize: fontSize.normal, lineHeight: fontSize.normal * lineHeights.default, fontFamily: defaultPrintFontMedium }]}>Date:</Text>
-          <Text style={[styles.infoValue, { fontSize: fontSize.normal, lineHeight: fontSize.normal * lineHeights.default, fontFamily: defaultPrintFont }]}>{data.saleDate}</Text>
+          <Text style={[styles.infoLabel, { fontSize: fontSize.normal, lineHeight: fontSize.normal * lineHeights.default, fontFamily: defaultPrintFontMedium }]} allowFontScaling={false}>Date:</Text>
+          <Text style={[styles.infoValue, { fontSize: fontSize.normal, lineHeight: fontSize.normal * lineHeights.default, fontFamily: defaultPrintFont }]} allowFontScaling={false}>{data.saleDate}</Text>
         </View>
         {data.customerName && (
           <View style={[styles.infoRow, { marginVertical: margins.infoRow }]}> 
-            <Text style={[styles.infoLabel, { fontSize: fontSize.normal, lineHeight: fontSize.normal * lineHeights.default, fontFamily: defaultPrintFontMedium }]}>Customer:</Text>
-            <Text style={[styles.infoValue, { fontSize: fontSize.normal, lineHeight: fontSize.normal * lineHeights.default, fontFamily: defaultPrintFont }]}>{data.customerName}</Text>
+            <Text style={[styles.infoLabel, { fontSize: fontSize.normal, lineHeight: fontSize.normal * lineHeights.default, fontFamily: defaultPrintFontMedium }]} allowFontScaling={false}>Customer:</Text>
+            <Text style={[styles.infoValue, { fontSize: fontSize.normal, lineHeight: fontSize.normal * lineHeights.default, fontFamily: defaultPrintFont }]} allowFontScaling={false}>{data.customerName}</Text>
           </View>
         )}
         {data.customerPhone && (
           <View style={[styles.infoRow, { marginVertical: margins.infoRow }]}> 
-            <Text style={[styles.infoLabel, { fontSize: fontSize.normal, lineHeight: fontSize.normal * lineHeights.default, fontFamily: defaultPrintFontMedium }]}>Phone:</Text>
-            <Text style={[styles.infoValue, { fontSize: fontSize.normal, lineHeight: fontSize.normal * lineHeights.default, fontFamily: defaultPrintFont }]}>{data.customerPhone}</Text>
+            <Text style={[styles.infoLabel, { fontSize: fontSize.normal, lineHeight: fontSize.normal * lineHeights.default, fontFamily: defaultPrintFontMedium }]} allowFontScaling={false}>Phone:</Text>
+            <Text style={[styles.infoValue, { fontSize: fontSize.normal, lineHeight: fontSize.normal * lineHeights.default, fontFamily: defaultPrintFont }]} allowFontScaling={false}>{data.customerPhone}</Text>
           </View>
         )}
       </View>
 
-      <Text style={[styles.divider, { fontSize: fontSize.small, marginVertical: 8 * scale, letterSpacing: config.dividerLetterSpacing, fontFamily: defaultPrintFont }]}> 
+      <Text style={[styles.divider, { fontSize: fontSize.small, marginVertical: 8 * scale, letterSpacing: config.dividerLetterSpacing, fontFamily: defaultPrintFont }]} allowFontScaling={false}> 
         {divider}
       </Text>
 
       {/* Items Header */}
       <View style={[styles.tableRow, { marginBottom: margins.itemsHeaderBottom, paddingHorizontal: 0 }]}> 
-        <Text style={[styles.tableHeader, { width: colName, fontSize: fontSize.normal, lineHeight: fontSize.normal * lineHeights.default, fontFamily: defaultPrintFontSemibold }]}> 
-          ပစ္စည်းအမည်
+        <Text style={[styles.tableHeader, { width: colName, fontSize: fontSize.normal, lineHeight: fontSize.normal * lineHeights.default, fontFamily: defaultPrintFontSemibold }]} allowFontScaling={false}> 
+          Item
         </Text>
-        <Text style={[styles.tableHeader, styles.textCenter, { width: colQty, fontSize: fontSize.normal, lineHeight: fontSize.normal * lineHeights.default, fontFamily: defaultPrintFontSemibold }]}> 
-          ဦးရေ
+        <Text style={[styles.tableHeader, styles.textCenter, { width: colQty, fontSize: fontSize.normal, lineHeight: fontSize.normal * lineHeights.default, fontFamily: defaultPrintFontSemibold }]} allowFontScaling={false}> 
+          Qty
         </Text>
-        <Text style={[styles.tableHeader, styles.textRight, { width: colPrice, fontSize: fontSize.normal, lineHeight: fontSize.normal * lineHeights.default, fontFamily: defaultPrintFontSemibold }]}> 
-          ဈေးနှုန်း
+        <Text style={[styles.tableHeader, styles.textRight, { width: colPrice, fontSize: fontSize.normal, lineHeight: fontSize.normal * lineHeights.default, fontFamily: defaultPrintFontSemibold }]} allowFontScaling={false}> 
+          Price
         </Text>
-        <Text style={[styles.tableHeader, styles.textRight, { width: colTotal, fontSize: fontSize.normal, lineHeight: fontSize.normal * lineHeights.default, fontFamily: defaultPrintFontSemibold }]}> 
-          သင့်ငွေ
+        <Text style={[styles.tableHeader, styles.textRight, { width: colTotal, fontSize: fontSize.normal, lineHeight: fontSize.normal * lineHeights.default, fontFamily: defaultPrintFontSemibold }]} allowFontScaling={false}> 
+          Total
         </Text>
       </View>
 
-      <Text style={[styles.divider, { fontSize: fontSize.small, marginBottom: margins.itemsHeaderBottom, marginHorizontal: 0, paddingHorizontal: 0, letterSpacing: config.dividerLetterSpacing, fontFamily: defaultPrintFont }]}> 
+      <Text style={[styles.divider, { fontSize: fontSize.small, marginBottom: margins.itemsHeaderBottom, marginHorizontal: 0, paddingHorizontal: 0, letterSpacing: config.dividerLetterSpacing, fontFamily: defaultPrintFont }]} allowFontScaling={false}> 
         {divider}
       </Text>
 
@@ -160,41 +184,42 @@ const ReceiptView: React.FC<ReceiptViewProps> = ({
         <View key={index} style={[styles.tableRow, { marginVertical: margins.itemRow, alignItems: 'flex-start', paddingHorizontal: 0 }]}> 
           <Text 
             style={[styles.tableCell, { width: colName, fontSize: fontSize.normal, lineHeight: fontSize.normal * lineHeights.itemName, fontFamily: defaultPrintFont }]}
+            allowFontScaling={false}
           >
             {item.name}
           </Text>
-          <Text style={[styles.tableCell, styles.textCenter, { width: colQty, fontSize: fontSize.normal, lineHeight: fontSize.normal * lineHeights.itemName, fontFamily: defaultPrintFont }]}> 
+          <Text style={[styles.tableCell, styles.textCenter, { width: colQty, fontSize: fontSize.normal, lineHeight: fontSize.normal * lineHeights.itemName, fontFamily: defaultPrintFont }]} allowFontScaling={false}> 
             {item.quantity}
           </Text>
-          <Text style={[styles.tableCell, styles.textRight, { width: colPrice, fontSize: fontSize.normal, lineHeight: fontSize.normal * lineHeights.itemName, fontFamily: defaultPrintFont }]}> 
+          <Text style={[styles.tableCell, styles.textRight, { width: colPrice, fontSize: fontSize.normal, lineHeight: fontSize.normal * lineHeights.itemName, fontFamily: defaultPrintFont }]} allowFontScaling={false}> 
             {item.unitPrice.toLocaleString()}
           </Text>
-          <Text style={[styles.tableCell, styles.textRight, { width: colTotal, fontSize: fontSize.normal, lineHeight: fontSize.normal * lineHeights.itemName, fontFamily: defaultPrintFont }]}> 
+          <Text style={[styles.tableCell, styles.textRight, { width: colTotal, fontSize: fontSize.normal, lineHeight: fontSize.normal * lineHeights.itemName, fontFamily: defaultPrintFont }]} allowFontScaling={false}> 
             {item.total.toLocaleString()}
           </Text>
         </View>
       ))}
 
-      <Text style={[styles.divider, { fontSize: fontSize.small, marginVertical: margins.dividerVertical, letterSpacing: config.dividerLetterSpacing, fontFamily: defaultPrintFont }]}> 
+      <Text style={[styles.divider, { fontSize: fontSize.small, marginVertical: margins.dividerVertical, letterSpacing: config.dividerLetterSpacing, fontFamily: defaultPrintFont }]} allowFontScaling={false}> 
         {divider}
       </Text>
 
       {/* Total */}
       <View style={[styles.totalRow, { marginVertical: margins.totalRow }]}> 
-        <Text style={[styles.totalLabel, { fontSize: fontSize.total, lineHeight: fontSize.total * lineHeights.default, fontFamily: defaultPrintFontBold }]}>စုစုပေါင်း:</Text>
-        <Text style={[styles.totalAmount, { fontSize: fontSize.total, lineHeight: fontSize.total * lineHeights.default, fontFamily: defaultPrintFontBold }]}> 
+        <Text style={[styles.totalLabel, { fontSize: fontSize.total, lineHeight: fontSize.total * lineHeights.default, fontFamily: defaultPrintFontBold }]} allowFontScaling={false}>စုစုပေါင်း:</Text>
+        <Text style={[styles.totalAmount, { fontSize: fontSize.total, lineHeight: fontSize.total * lineHeights.default, fontFamily: defaultPrintFontBold }]} allowFontScaling={false}> 
           {data.totalAmount.toLocaleString()} Ks
         </Text>
       </View>
 
-      <Text style={[styles.divider, { fontSize: fontSize.small, marginVertical: margins.infoSection, letterSpacing: config.dividerLetterSpacing, fontFamily: defaultPrintFont }]}> 
+      <Text style={[styles.divider, { fontSize: fontSize.small, marginVertical: margins.infoSection, letterSpacing: config.dividerLetterSpacing, fontFamily: defaultPrintFont }]} allowFontScaling={false}> 
         {divider}
       </Text>
 
       {/* Payment Method */}
       <View style={[styles.infoRow, { marginVertical: margins.itemRow }]}> 
-        <Text style={[styles.infoLabel, { fontSize: fontSize.normal, lineHeight: fontSize.normal * lineHeights.default, fontFamily: defaultPrintFontMedium }]}>ငွေပေးချေမှု:</Text>
-        <Text style={[styles.infoValue, { fontSize: fontSize.normal, lineHeight: fontSize.normal * lineHeights.default, fontFamily: defaultPrintFont }]}> 
+        <Text style={[styles.infoLabel, { fontSize: fontSize.normal, lineHeight: fontSize.normal * lineHeights.default, fontFamily: defaultPrintFontMedium }]} allowFontScaling={false}>ငွေပေးချေမှု:</Text>
+        <Text style={[styles.infoValue, { fontSize: fontSize.normal, lineHeight: fontSize.normal * lineHeights.default, fontFamily: defaultPrintFont }]} allowFontScaling={false}> 
           {data.paymentMethod === 'cash' ? 'လက်ငင်း' : 
            data.paymentMethod === 'credit' ? 'အကြွေး' : 
            data.paymentMethod.charAt(0).toUpperCase() + data.paymentMethod.slice(1)}
@@ -204,7 +229,7 @@ const ReceiptView: React.FC<ReceiptViewProps> = ({
       {/* Notes */}
       {data.notes && (
         <View style={[styles.notesSection, { marginTop: margins.totalRow }]}> 
-          <Text style={[styles.infoText, { fontSize: fontSize.normal, lineHeight: fontSize.normal * lineHeights.itemName, fontFamily: defaultPrintFont }]}> 
+          <Text style={[styles.infoText, { fontSize: fontSize.normal, lineHeight: fontSize.normal * lineHeights.itemName, fontFamily: defaultPrintFont }]} allowFontScaling={false}> 
             မှတ်ချက်: {data.notes}
           </Text>
         </View>
@@ -212,10 +237,13 @@ const ReceiptView: React.FC<ReceiptViewProps> = ({
 
       {/* Footer */}
       <View style={[styles.footer, { marginTop: margins.footerTop, marginBottom: margins.footerBottom }]}> 
-        <Text style={[styles.divider, { fontSize: fontSize.small, marginBottom: margins.dividerVertical, letterSpacing: config.dividerLetterSpacing, fontFamily: defaultPrintFont }]}> 
+        <Text style={[styles.divider, { fontSize: fontSize.small, marginBottom: margins.dividerVertical, letterSpacing: config.dividerLetterSpacing, fontFamily: defaultPrintFont }]} allowFontScaling={false}> 
           {divider}
         </Text>
-        <Text style={[styles.footerText, { fontSize: fontSize.storeInfo, lineHeight: fontSize.storeInfo * lineHeights.footer, fontFamily: defaultPrintFont }]}> 
+        <Text style={[styles.footerText, { fontSize: fontSize.storeInfo, lineHeight: fontSize.storeInfo * lineHeights.footer, fontFamily: defaultPrintFont, marginTop: 8 * scale }]} allowFontScaling={false}> 
+          ၀ယ်ယူပြီးပစ္စည်းပြန်မလဲပါ
+        </Text>
+        <Text style={[styles.footerText, { fontSize: fontSize.storeInfo, lineHeight: fontSize.storeInfo * lineHeights.footer, fontFamily: defaultPrintFont, marginTop: 12 * scale }]} allowFontScaling={false}> 
           ၀ယ်ယူအားပေးမှုကိုကျေးဇူးတင်ပါသည်
         </Text>
       </View>
@@ -230,6 +258,17 @@ const styles = StyleSheet.create({
   header: {
     alignItems: 'center',
     marginBottom: 8,
+  },
+  headerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  logo: {
+    marginRight: 8,
+  },
+  headerText: {
+    alignItems: 'center',
   },
   storeName: {
     color: '#000000',

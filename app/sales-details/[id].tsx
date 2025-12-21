@@ -2,16 +2,16 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
-    ActivityIndicator,
-    Alert,
-    KeyboardAvoidingView,
-    Platform,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
+  ActivityIndicator,
+  Alert,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import PrintReceipt from '../../components/PrintReceipt';
@@ -984,6 +984,7 @@ const styles = StyleSheet.create({
   printButtonContainer: {
     marginTop: 20,
     marginBottom: 20,
+    marginHorizontal: 10,
   },
   printReceiptButton: {
     backgroundColor: '#4CAF50',
@@ -1102,6 +1103,7 @@ const styles = StyleSheet.create({
     marginTop: 30,
     marginBottom: 30,
     alignItems: 'center',
+    paddingHorizontal: 20,
   },
   desktopPrintReceiptButton: {
     minWidth: 200,

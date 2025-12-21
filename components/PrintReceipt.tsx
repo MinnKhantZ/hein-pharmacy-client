@@ -74,6 +74,7 @@ const PrintReceipt: React.FC<PrintReceiptProps> = ({
   const { config: printLayoutConfig } = usePrintLayout();
 
   const [showPrinterModal, setShowPrinterModal] = useState(false);
+  const [showPreviewModal, setShowPreviewModal] = useState(false);
   const [printers, setPrinters] = useState<PrinterDevice[]>([]);
   const [scanning, setScanning] = useState(false);
   const [connecting, setConnecting] = useState(false);
@@ -341,30 +342,48 @@ const PrintReceipt: React.FC<PrintReceiptProps> = ({
         </View>
       )}
       
-      <TouchableOpacity
-        style={[
-          styles.printButton, 
-          { backgroundColor: getButtonColor() },
-          buttonStyle
-        ]}
-        onPress={handlePrintPress}
-        onLongPress={() => {
-          if (Platform.OS !== 'web') {
-            // Long press to change printer
-            setShowPrinterModal(true);
-            scanForPrinters();
-          }
-        }}
-        disabled={printing || connecting}
-      >
-        {printing || connecting ? (
-          <ActivityIndicator size="small" color="white" />
-        ) : (
-          <Text style={styles.printButtonText}>
-            {getButtonText()}
+      <View style={styles.buttonContainer}>
+        {/* Preview Button - Commented out */}
+        {/*
+        <TouchableOpacity
+          style={[
+            styles.previewButton,
+            buttonStyle
+          ]}
+          onPress={() => setShowPreviewModal(true)}
+        >
+          <Text style={styles.previewButtonText}>
+            👁️ {t('Preview')}
           </Text>
-        )}
-      </TouchableOpacity>
+        </TouchableOpacity>
+        */}
+
+        {/* Print Button */}
+        <TouchableOpacity
+          style={[
+            styles.printButton, 
+            { backgroundColor: getButtonColor() },
+            buttonStyle
+          ]}
+          onPress={handlePrintPress}
+          onLongPress={() => {
+            if (Platform.OS !== 'web') {
+              // Long press to change printer
+              setShowPrinterModal(true);
+              scanForPrinters();
+            }
+          }}
+          disabled={printing || connecting}
+        >
+          {printing || connecting ? (
+            <ActivityIndicator size="small" color="white" />
+          ) : (
+            <Text style={styles.printButtonText}>
+              {getButtonText()}
+            </Text>
+          )}
+        </TouchableOpacity>
+      </View>
 
       {Platform.OS !== 'web' && (
         <Modal
@@ -448,6 +467,55 @@ const PrintReceipt: React.FC<PrintReceiptProps> = ({
           </View>
         </Modal>
       )}
+
+      {/* Preview Modal */}
+      <Modal
+        visible={showPreviewModal}
+        transparent={true}
+        animationType="slide"
+        onRequestClose={() => setShowPreviewModal(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={[styles.modalContent, { backgroundColor }]}>
+            <View style={styles.modalHeader}>
+              <View>
+                <Text style={[styles.modalTitle, { color: textColor }]}>
+                  {t('Receipt Preview')}
+                </Text>
+                <Text style={[styles.modalSubtitle, { color: textColor, opacity: 0.7 }]}>
+                  {t('How your receipt will appear when printed')}
+                </Text>
+              </View>
+              <TouchableOpacity
+                style={styles.closeButton}
+                onPress={() => setShowPreviewModal(false)}
+              >
+                <Text style={styles.closeButtonText}>×</Text>
+              </TouchableOpacity>
+            </View>
+
+            <View style={styles.previewContainer}>
+              <ReceiptView 
+                data={receiptData} 
+                width={printLayoutConfig.paperWidth} 
+                layoutConfig={{
+                  ...printLayoutConfig,
+                  scale: 0.5, // Use smaller scale for more compact preview
+                }} 
+              />
+            </View>
+
+            <View style={styles.modalFooter}>
+              <TouchableOpacity
+                style={styles.cancelButton}
+                onPress={() => setShowPreviewModal(false)}
+              >
+                <Text style={styles.cancelButtonText}>{t('Close')}</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </>
   );
 };
@@ -463,6 +531,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
   },
   printButton: {
+    flex: 1,
     backgroundColor: '#2196F3',
     paddingVertical: 12,
     paddingHorizontal: 20,
@@ -599,6 +668,34 @@ const styles = StyleSheet.create({
     color: 'white',
     fontSize: 16,
     fontWeight: '600',
+  },
+  buttonContainer: {
+    flexDirection: 'row',
+    gap: 10,
+  },
+  previewButton: {
+    flex: 1,
+    backgroundColor: '#666',
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+    minHeight: 44,
+  },
+  previewButtonText: {
+    color: 'white',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  previewContainer: {
+    flex: 1,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 8,
+    padding: 10,
+    marginVertical: 20,
+    alignItems: 'center',
+    justifyContent: 'flex-start',
   },
 });
 

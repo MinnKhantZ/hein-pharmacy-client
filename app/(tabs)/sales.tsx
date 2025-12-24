@@ -2,19 +2,19 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
-    ActivityIndicator,
-    Alert,
-    FlatList,
-    KeyboardAvoidingView,
-    Modal,
-    Platform,
-    RefreshControl,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
+  ActivityIndicator,
+  Alert,
+  FlatList,
+  KeyboardAvoidingView,
+  Modal,
+  Platform,
+  RefreshControl,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNotifications } from '../../contexts/NotificationContext';
@@ -42,6 +42,7 @@ interface SaleItem {
   total: number;
   owner_name: string;
   owner_id: number;
+  available_stock: number;
 }
 
 interface SaleRecord {
@@ -223,7 +224,7 @@ export default function SalesScreen() {
     const existing = saleItems.find(si => si.inventory_item_id === item.id);
     
     if (existing) {
-      if (existing.quantity >= item.quantity) {
+      if (existing.quantity >= existing.available_stock) {
         Alert.alert('Error', t('Not enough stock available'));
         return;
       }
@@ -241,8 +242,13 @@ export default function SalesScreen() {
         total: Number(item.selling_price),
         owner_name: item.owner_name,
         owner_id: item.owner_id,
+        available_stock: item.quantity,
       }]);
     }
+
+    // Clear search query and inventory items after adding
+    setSearchQuery('');
+    setInventoryItems([]);
   };
 
   const removeItemFromSale = (itemId: number) => {
@@ -250,15 +256,15 @@ export default function SalesScreen() {
   };
 
   const updateQuantity = (itemId: number, newQuantity: number) => {
-    const inventoryItem = inventoryItems.find(item => item.id === itemId);
-    if (!inventoryItem) return;
+    const cartItem = saleItems.find(item => item.inventory_item_id === itemId);
+    if (!cartItem) return;
 
     if (newQuantity <= 0) {
       removeItemFromSale(itemId);
       return;
     }
 
-    if (newQuantity > inventoryItem.quantity) {
+    if (newQuantity > cartItem.available_stock) {
       Alert.alert('Error', t('Not enough stock available'));
       return;
     }
@@ -606,12 +612,6 @@ export default function SalesScreen() {
                                     {item.category} • Stock: {item.quantity} • {formatPrice(item.selling_price)}
                                   </Text>
                                 </View>
-                                <TouchableOpacity
-                                  style={[styles.addButton, isDesktop && styles.addButtonDesktop]}
-                                  onPress={() => addItemToSale(item)}
-                                >
-                                  <Text style={styles.addButtonText}>+</Text>
-                                </TouchableOpacity>
                               </TouchableOpacity>
                             ))
                           )}
@@ -763,12 +763,6 @@ export default function SalesScreen() {
                                   {item.category} • Stock: {item.quantity} • {formatPrice(item.selling_price)}
                                 </Text>
                               </View>
-                              <TouchableOpacity
-                                style={styles.addButton}
-                                onPress={() => addItemToSale(item)}
-                              >
-                                <Text style={styles.addButtonText}>+</Text>
-                              </TouchableOpacity>
                             </TouchableOpacity>
                           ))
                         )}
@@ -1085,7 +1079,6 @@ const styles = StyleSheet.create({
     borderRadius: 0,
     width: '100%',
     height: '100%',
-    maxHeight: 'none',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
@@ -1158,10 +1151,6 @@ const styles = StyleSheet.create({
   inventoryItemDetailsDesktop: {
     fontSize: 14,
     marginTop: 6,
-  },
-  addButtonDesktop: {
-    width: 40,
-    height: 40,
   },
   cartItemDesktop: {
     padding: 14,
@@ -1434,19 +1423,6 @@ const styles = StyleSheet.create({
     color: '#666',
     marginTop: 4,
   },
-  addButton: {
-    backgroundColor: '#4CAF50',
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  addButtonText: {
-    color: 'white',
-    fontSize: 24,
-    fontWeight: '600',
-  },
   actionButton: {
     flex: 1,
     padding: 15,
@@ -1578,4 +1554,4 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     fontSize: 14,
   },
-});
+}) as any;

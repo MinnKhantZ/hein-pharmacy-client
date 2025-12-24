@@ -2,16 +2,16 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
-  ActivityIndicator,
-  Alert,
-  KeyboardAvoidingView,
-  Platform,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View,
+    ActivityIndicator,
+    Alert,
+    KeyboardAvoidingView,
+    Platform,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TextInput,
+    TouchableOpacity,
+    View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import PrintReceipt from '../../components/PrintReceipt';
@@ -365,8 +365,9 @@ export default function SaleDetailsScreen() {
                   </View>
                 </View>
 
-                {!sale.is_paid && (
-                  <View style={[styles.actionButtonsContainer, isDesktop && styles.desktopActionButtonsContainer]}>
+                {/* Action Buttons and Print Receipt */}
+                <View style={[styles.printButtonContainer, isDesktop && styles.desktopPrintButtonContainer]}>
+                  <View style={{ flexDirection: 'row', gap: 10, marginBottom: 10 }}>
                     <TouchableOpacity
                       style={[styles.button, styles.editButton, isDesktop && styles.desktopButton]}
                       onPress={() => setIsEditing(true)}
@@ -380,10 +381,6 @@ export default function SaleDetailsScreen() {
                       <Text style={[styles.buttonText, isDesktop && styles.desktopButtonText]}>🗑️ {t('Delete')}</Text>
                     </TouchableOpacity>
                   </View>
-                )}
-
-                {/* Print Receipt Button */}
-                <View style={[styles.printButtonContainer, isDesktop && styles.desktopPrintButtonContainer]}>
                   <PrintReceipt
                     receiptData={formatReceiptData(sale)}
                     buttonText={t('Print Receipt')}

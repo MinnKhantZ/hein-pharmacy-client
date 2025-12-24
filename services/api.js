@@ -25,7 +25,7 @@ api.interceptors.request.use(async (config) => {
   return config;
 });
 
-// Response interceptor to handle auth errors
+// Response interceptor to handle auth errors and rate limiting
 api.interceptors.response.use(
   (response) => response,
   async (error) => {
@@ -33,6 +33,24 @@ api.interceptors.response.use(
       // Token expired or invalid, remove it
       await secureStorage.deleteItemAsync('authToken');
       await secureStorage.deleteItemAsync('user');
+    } else if (error.response?.status === 429) {
+      // Rate limited - implement exponential backoff retry
+      const config = error.config;
+      if (!config._retry) {
+        config._retry = true;
+        config._retryCount = config._retryCount || 0;
+        
+        if (config._retryCount < 3) { // Max 3 retries
+          config._retryCount += 1;
+          const delay = Math.pow(2, config._retryCount) * 1000; // Exponential backoff: 2s, 4s, 8s
+          
+          console.log(`Rate limited. Retrying in ${delay}ms (attempt ${config._retryCount}/3)`);
+          
+          return new Promise((resolve) => {
+            setTimeout(() => resolve(api(config)), delay);
+          });
+        }
+      }
     }
     return Promise.reject(error);
   }

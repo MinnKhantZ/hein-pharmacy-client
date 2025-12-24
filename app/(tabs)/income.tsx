@@ -1,21 +1,21 @@
 import { router } from 'expo-router';
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
-  ActivityIndicator,
-  Dimensions,
-  RefreshControl,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
+    ActivityIndicator,
+    Dimensions,
+    RefreshControl,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View,
 } from 'react-native';
 import { BarChart, LineChart, PieChart } from 'react-native-chart-kit';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useDocumentTitle } from '../../hooks/useDocumentTitle';
 import { incomeAPI } from '../../services/api';
-import { formatPrice, getCurrencySymbol } from '../../utils/priceFormatter';
+import { formatPrice, formatPriceWithoutSymbol } from '../../utils/priceFormatter';
 import { useBreakpoint } from '../../utils/responsive';
 
 const screenWidth = Dimensions.get('window').width;
@@ -43,6 +43,7 @@ export default function IncomeScreen() {
   const [period, setPeriod] = useState<Period>('daily');
   const [summaries, setSummaries] = useState<IncomeSummary[]>([]);
   const [selectedOwner, setSelectedOwner] = useState<string | null>(null);
+  const chartScrollViewRef = useRef<ScrollView>(null);
 
   const fetchIncome = React.useCallback(async () => {
     try {
@@ -194,6 +195,18 @@ export default function IncomeScreen() {
     new Date(b.periodKey).getTime() - new Date(a.periodKey).getTime()
   );
 
+  // Get the number of data points to show based on period
+  const getChartDataLimit = () => {
+    if (period === 'daily') {
+      const today = new Date();
+      return new Date(today.getFullYear(), today.getMonth() + 1, 0).getDate(); // Days in current month
+    } else if (period === 'monthly') {
+      return 12;
+    } else { // yearly
+      return 5;
+    }
+  };
+
   // Prepare line chart data (sales over time)
   const prepareLineChartData = () => {
     if (selectedOwner) {
@@ -202,7 +215,7 @@ export default function IncomeScreen() {
       const periods = ownerData
         .map(s => s.periodKey)
         .sort((a, b) => new Date(a).getTime() - new Date(b).getTime())
-        .slice(0, 6);
+        .slice(-getChartDataLimit());
       
       return {
         labels: periods.map(p => {
@@ -229,7 +242,7 @@ export default function IncomeScreen() {
       // Get all unique periods, sort ascending (old to new), take first 6
       const allPeriods = Object.keys(aggregatedData.sales)
         .sort((a, b) => new Date(a).getTime() - new Date(b).getTime())
-        .slice(0, 6);
+        .slice(-getChartDataLimit());
 
       const colors = ['#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', '#9966FF', '#FF9F40'];
 
@@ -258,6 +271,16 @@ export default function IncomeScreen() {
   };
 
   const lineChartData = prepareLineChartData();
+
+  // Auto-scroll to latest point when chart data changes
+  useEffect(() => {
+    if (chartScrollViewRef.current && lineChartData.labels.length > 0) {
+      // Use setTimeout to ensure the chart has rendered
+      setTimeout(() => {
+        chartScrollViewRef.current?.scrollToEnd({ animated: true });
+      }, 100);
+    }
+  }, [lineChartData]);
 
   // Prepare bar chart data (sales by owner - CURRENT PERIOD ONLY)
   // Truncate long names for bar chart labels
@@ -299,6 +322,27 @@ export default function IncomeScreen() {
       strokeWidth: '2',
       stroke: '#2196F3',
     },
+  };
+
+  // Decorator to show values on chart points (only for single owner)
+  const renderDotContent = ({ x, y, index, indexData }: any) => {
+    return (
+      <Text
+        key={`dot-${index}-${indexData}`}
+        style={{
+          position: 'absolute',
+          left: x - 15,
+          top: y - 25,
+          fontSize: 10,
+          fontWeight: 'bold',
+          color: '#333',
+          textAlign: 'center',
+          width: 50,
+        }}
+      >
+        {formatPriceWithoutSymbol(indexData)} Ks
+      </Text>
+    );
   };
 
   // Calculate totals for CURRENT PERIOD ONLY
@@ -404,7 +448,11 @@ export default function IncomeScreen() {
             {aggregatedSummariesArray.length > 0 && (
               <View style={styles.section}>
                 <Text style={styles.sectionTitle}>{t('Sales Trend')}</Text>
-                <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+                <ScrollView 
+                  ref={chartScrollViewRef}
+                  horizontal 
+                  showsHorizontalScrollIndicator={false}
+                >
                   <LineChart
                     data={lineChartData}
                     width={Math.max(chartWidth, lineChartData.labels.length * 80)}
@@ -412,13 +460,14 @@ export default function IncomeScreen() {
                     chartConfig={chartConfig}
                     bezier
                     style={styles.chart}
-                    yAxisLabel={getCurrencySymbol()}
+                    yAxisLabel=""
                     yAxisSuffix=""
                     withInnerLines={true}
                     withOuterLines={true}
                     withVerticalLabels={true}
                     withHorizontalLabels={true}
-                    fromZero
+                    withDots={true}
+                    renderDotContent={renderDotContent}
                   />
                 </ScrollView>
                 {selectedOwner === null && owners.length > 1 && (
@@ -450,7 +499,7 @@ export default function IncomeScreen() {
                     height={220}
                     chartConfig={chartConfig}
                     style={styles.chart}
-                    yAxisLabel={getCurrencySymbol()}
+                    yAxisLabel=""
                     yAxisSuffix=""
                     fromZero
                     showValuesOnTopOfBars

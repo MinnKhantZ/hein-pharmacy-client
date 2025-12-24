@@ -110,7 +110,6 @@ export default function PrintLayoutSettingsScreen() {
     columnWidths: false,
     margins: false,
     lineHeights: false,
-    divider: false,
   });
 
   const toggleSection = (section: string) => {
@@ -477,35 +476,6 @@ export default function PrintLayoutSettingsScreen() {
                 step={0.1}
                 min={1.0}
                 max={2.0}
-                decimals={1}
-              />
-            </View>
-          )}
-        </View>
-
-        {/* Divider Settings */}
-        <View style={styles.section}>
-          <SectionHeader title={t('Divider Settings')} section="divider" />
-          {expandedSections.divider && (
-            <View style={styles.sectionContent}>
-              <NumberInputRow
-                label={t('Char Width Ratio')}
-                value={config.dividerCharWidthRatio}
-                defaultValue={DEFAULT_PRINT_LAYOUT.dividerCharWidthRatio}
-                onValueChange={(v) => updateConfigValue('dividerCharWidthRatio', v)}
-                step={0.05}
-                min={0.3}
-                max={1.5}
-                decimals={2}
-              />
-              <NumberInputRow
-                label={t('Letter Spacing')}
-                value={config.dividerLetterSpacing}
-                defaultValue={DEFAULT_PRINT_LAYOUT.dividerLetterSpacing}
-                onValueChange={(v) => updateConfigValue('dividerLetterSpacing', v)}
-                step={0.5}
-                min={-5}
-                max={5}
                 decimals={1}
               />
             </View>

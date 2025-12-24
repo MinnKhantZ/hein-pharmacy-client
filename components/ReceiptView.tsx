@@ -1,5 +1,5 @@
 import React from 'react';
-import { Image, PixelRatio, StyleSheet, Text, View } from 'react-native';
+import { Image, PixelRatio, StyleSheet, Text, View, ViewStyle } from 'react-native';
 
 import {
   defaultPrintFont,
@@ -32,9 +32,9 @@ interface ReceiptViewProps {
  * All layout parameters are now configurable through PrintLayoutConfig.
  * Pass layoutConfig prop to customize, or it will use DEFAULT_PRINT_LAYOUT.
  * 
- * Divider length is automatically adjusted based on device PixelRatio to ensure
- * exact fit across different screen densities. Calibrated for PixelRatio 2.75.
- * Font scaling is disabled to prevent layout issues from system font size settings.
+ * Divider length is automatically adjusted by clipping to fit the available width exactly
+ * across different screen densities. Font scaling is disabled to prevent layout issues
+ * from system font size settings.
  */
 const ReceiptView: React.FC<ReceiptViewProps> = ({ 
   data, 
@@ -60,10 +60,6 @@ const ReceiptView: React.FC<ReceiptViewProps> = ({
   
   // Content width available for text and table (matching agent: contentWidth = paperWidth - (padding * 2))
   const contentWidth = scaledWidth - (padding * 2);
-  
-  // Adjust divider character width ratio based on pixel ratio for exact fit
-  // Calibrated for PixelRatio 2.75 with ratio 0.7
-  const adjustedDividerCharWidthRatio = 0.7 * (2.75 / pixelRatio);
   
   // Calculate column widths based on content width (using configurable percentages)
   const colName = Math.floor(contentWidth * config.columnWidths.name);
@@ -93,15 +89,22 @@ const ReceiptView: React.FC<ReceiptViewProps> = ({
     footerBottom: config.margins.footerBottom * scale,
   };
 
+  // Reusable Divider component
+  const Divider = ({ style }: { style?: ViewStyle }) => (
+    <View style={[{ width: '100%', overflow: 'hidden', marginHorizontal: 0 }, style]}>
+      <Text 
+        numberOfLines={1} 
+        ellipsizeMode="clip" 
+        style={{ fontSize: fontSize.small, fontFamily: defaultPrintFont, color: '#000000', textAlign: 'center' }} 
+        allowFontScaling={false}
+      >
+        {"- ".repeat(100)} 
+      </Text>
+    </View>
+  );
+
   // Line heights from config
   const lineHeights = config.lineHeights;
-
-  // Generate divider line that fits the available width exactly
-  // Use configurable char width ratio for divider calculation
-  const dividerChar = '-';
-  const charSpacePairWidth = fontSize.small * adjustedDividerCharWidthRatio;
-  const dividerPairCount = Math.floor(contentWidth / charSpacePairWidth);
-  const divider = (dividerChar + ' ').repeat(dividerPairCount).trim();
 
   return (
     <View style={[styles.container, { width: scaledWidth, padding: config.paddingBase * scale }]}> 
@@ -110,7 +113,7 @@ const ReceiptView: React.FC<ReceiptViewProps> = ({
         <View style={styles.headerRow}>
           <Image 
             source={require('../assets/images/logo-black.png')} 
-            style={[styles.logo, { width: 70 * scale, height: 70 * scale }]} 
+            style={[styles.logo, { width: 90 * scale, height: 90 * scale }]} 
             resizeMode="contain"
           />
           <View style={styles.headerText}>
@@ -127,9 +130,7 @@ const ReceiptView: React.FC<ReceiptViewProps> = ({
         </View>
       </View>
 
-      <Text style={[styles.divider, { fontSize: fontSize.small, marginVertical: margins.dividerVertical, letterSpacing: config.dividerLetterSpacing, fontFamily: defaultPrintFont }]} allowFontScaling={false}> 
-        {divider}
-      </Text>
+      <Divider style={{ marginVertical: margins.dividerVertical }} />
 
       {/* Sale Info */}
       <View style={[styles.infoSection, { marginVertical: margins.infoSection }]}> 
@@ -155,9 +156,7 @@ const ReceiptView: React.FC<ReceiptViewProps> = ({
         )}
       </View>
 
-      <Text style={[styles.divider, { fontSize: fontSize.small, marginVertical: 8 * scale, letterSpacing: config.dividerLetterSpacing, fontFamily: defaultPrintFont }]} allowFontScaling={false}> 
-        {divider}
-      </Text>
+      <Divider style={{ marginVertical: 8 * scale }} />
 
       {/* Items Header */}
       <View style={[styles.tableRow, { marginBottom: margins.itemsHeaderBottom, paddingHorizontal: 0 }]}> 
@@ -175,9 +174,7 @@ const ReceiptView: React.FC<ReceiptViewProps> = ({
         </Text>
       </View>
 
-      <Text style={[styles.divider, { fontSize: fontSize.small, marginBottom: margins.itemsHeaderBottom, marginHorizontal: 0, paddingHorizontal: 0, letterSpacing: config.dividerLetterSpacing, fontFamily: defaultPrintFont }]} allowFontScaling={false}> 
-        {divider}
-      </Text>
+      <Divider style={{ marginBottom: margins.itemsHeaderBottom, paddingHorizontal: 0 }} />
 
       {/* Items */}
       {data.items.map((item, index) => (
@@ -200,28 +197,24 @@ const ReceiptView: React.FC<ReceiptViewProps> = ({
         </View>
       ))}
 
-      <Text style={[styles.divider, { fontSize: fontSize.small, marginVertical: margins.dividerVertical, letterSpacing: config.dividerLetterSpacing, fontFamily: defaultPrintFont }]} allowFontScaling={false}> 
-        {divider}
-      </Text>
+      <Divider style={{ marginVertical: margins.dividerVertical }} />
 
       {/* Total */}
       <View style={[styles.totalRow, { marginVertical: margins.totalRow }]}> 
-        <Text style={[styles.totalLabel, { fontSize: fontSize.total, lineHeight: fontSize.total * lineHeights.default, fontFamily: defaultPrintFontBold }]} allowFontScaling={false}>စုစုပေါင်း:</Text>
+        <Text style={[styles.totalLabel, { fontSize: fontSize.total, lineHeight: fontSize.total * lineHeights.default, fontFamily: defaultPrintFontBold }]} allowFontScaling={false}>Total:</Text>
         <Text style={[styles.totalAmount, { fontSize: fontSize.total, lineHeight: fontSize.total * lineHeights.default, fontFamily: defaultPrintFontBold }]} allowFontScaling={false}> 
           {data.totalAmount.toLocaleString()} Ks
         </Text>
       </View>
 
-      <Text style={[styles.divider, { fontSize: fontSize.small, marginVertical: margins.infoSection, letterSpacing: config.dividerLetterSpacing, fontFamily: defaultPrintFont }]} allowFontScaling={false}> 
-        {divider}
-      </Text>
+      <Divider style={{ marginVertical: margins.infoSection }} />
 
       {/* Payment Method */}
       <View style={[styles.infoRow, { marginVertical: margins.itemRow }]}> 
-        <Text style={[styles.infoLabel, { fontSize: fontSize.normal, lineHeight: fontSize.normal * lineHeights.default, fontFamily: defaultPrintFontMedium }]} allowFontScaling={false}>ငွေပေးချေမှု:</Text>
+        <Text style={[styles.infoLabel, { fontSize: fontSize.normal, lineHeight: fontSize.normal * lineHeights.default, fontFamily: defaultPrintFontMedium }]} allowFontScaling={false}>Payment:</Text>
         <Text style={[styles.infoValue, { fontSize: fontSize.normal, lineHeight: fontSize.normal * lineHeights.default, fontFamily: defaultPrintFont }]} allowFontScaling={false}> 
-          {data.paymentMethod === 'cash' ? 'လက်ငင်း' : 
-           data.paymentMethod === 'credit' ? 'အကြွေး' : 
+          {data.paymentMethod === 'cash' ? 'Cash' : 
+           data.paymentMethod === 'credit' ? 'Credit' : 
            data.paymentMethod.charAt(0).toUpperCase() + data.paymentMethod.slice(1)}
         </Text>
       </View>
@@ -237,9 +230,7 @@ const ReceiptView: React.FC<ReceiptViewProps> = ({
 
       {/* Footer */}
       <View style={[styles.footer, { marginTop: margins.footerTop, marginBottom: margins.footerBottom }]}> 
-        <Text style={[styles.divider, { fontSize: fontSize.small, marginBottom: margins.dividerVertical, letterSpacing: config.dividerLetterSpacing, fontFamily: defaultPrintFont }]} allowFontScaling={false}> 
-          {divider}
-        </Text>
+        <Divider style={{ marginBottom: margins.dividerVertical }} />
         <Text style={[styles.footerText, { fontSize: fontSize.storeInfo, lineHeight: fontSize.storeInfo * lineHeights.footer, fontFamily: defaultPrintFont, marginTop: 8 * scale }]} allowFontScaling={false}> 
           ၀ယ်ယူပြီးပစ္စည်းပြန်မလဲပါ
         </Text>
@@ -265,7 +256,8 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   logo: {
-    marginRight: 8,
+    top: -14,
+    left: -4
   },
   headerText: {
     alignItems: 'center',
@@ -277,11 +269,6 @@ const styles = StyleSheet.create({
   storeInfo: {
     color: '#000000',
     textAlign: 'center',
-  },
-  divider: {
-    color: '#000000',
-    textAlign: 'center',
-    marginHorizontal: 0,
   },
   infoSection: {},
   infoRow: {
@@ -301,6 +288,7 @@ const styles = StyleSheet.create({
   tableRow: {
     flexDirection: 'row',
     paddingHorizontal: 0,
+    justifyContent: 'space-between',
   },
   tableHeader: {
     color: '#000000',

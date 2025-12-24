@@ -98,15 +98,6 @@ export interface PrintLayoutConfig {
   
   /** Line height multipliers */
   lineHeights: PrintLineHeights;
-  
-  /** 
-   * Divider character width ratio for calculating divider length
-   * Smaller = more characters in divider (default: 0.7)
-   */
-  dividerCharWidthRatio: number;
-  
-  /** Letter spacing for divider (default: -1) */
-  dividerLetterSpacing: number;
 }
 
 /**
@@ -129,7 +120,7 @@ export const DEFAULT_PRINT_LAYOUT: PrintLayoutConfig = {
     name: 0.45,
     quantity: 0.10,
     price: 0.20,
-    total: 0.23,
+    total: 0.25,
   },
   margins: {
     dividerVertical: 10,
@@ -146,8 +137,6 @@ export const DEFAULT_PRINT_LAYOUT: PrintLayoutConfig = {
     itemName: 1.4,
     footer: 1.4,
   },
-  dividerCharWidthRatio: 0.7,
-  dividerLetterSpacing: -1,
 };
 
 /**
@@ -188,6 +177,5 @@ export const PRINT_LAYOUT_PRESETS: Record<string, PrintLayoutConfig> = {
       dividerVertical: 12,
       footerBottom: 50,
     },
-    dividerCharWidthRatio: 0.72,
   },
 };

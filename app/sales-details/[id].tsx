@@ -2,16 +2,16 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
-    ActivityIndicator,
-    Alert,
-    KeyboardAvoidingView,
-    Platform,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
+  ActivityIndicator,
+  Alert,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import PrintReceipt from '../../components/PrintReceipt';
@@ -26,6 +26,7 @@ const { formatReceiptData } = require('../../utils/receiptFormatter');
 interface SaleItem {
   id: number;
   item_name: string;
+  unit?: string;
   quantity: number;
   unit_price: number;
   total_price: number;
@@ -50,6 +51,7 @@ interface InventoryItem {
   id: number;
   name: string;
   category: string;
+  unit: string;
   quantity: number;
   selling_price: number;
   owner_name: string;
@@ -351,7 +353,7 @@ export default function SaleDetailsScreen() {
                           <Text style={[styles.itemName, isDesktop && styles.desktopItemName]}>{item.item_name}</Text>
                           <Text style={[styles.itemOwner, isDesktop && styles.desktopItemOwner]}>{t('Owner')}: {item.owner_name}</Text>
                           <Text style={[styles.itemDetails, isDesktop && styles.desktopItemDetails]}>
-                            {item.quantity} × {formatPrice(item.unit_price)}
+                            {item.quantity} {item.unit || 'unit'} × {formatPrice(item.unit_price)}
                           </Text>
                         </View>
                         <Text style={[styles.itemTotal, isDesktop && styles.desktopItemTotal]}>{formatPrice(Number(item.total_price))}</Text>

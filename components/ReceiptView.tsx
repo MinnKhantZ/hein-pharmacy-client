@@ -63,6 +63,7 @@ const ReceiptView: React.FC<ReceiptViewProps> = ({
   
   // Calculate column widths based on content width (using configurable percentages)
   const colName = Math.floor(contentWidth * config.columnWidths.name);
+  const colUnit = Math.floor(contentWidth * config.columnWidths.unit);
   const colQty = Math.floor(contentWidth * config.columnWidths.quantity);
   const colPrice = Math.floor(contentWidth * config.columnWidths.price);
   const colTotal = Math.floor(contentWidth * config.columnWidths.total);
@@ -166,6 +167,9 @@ const ReceiptView: React.FC<ReceiptViewProps> = ({
         <Text style={[styles.tableHeader, styles.textCenter, { width: colQty, fontSize: fontSize.normal, lineHeight: fontSize.normal * lineHeights.default, fontFamily: defaultPrintFontSemibold }]} allowFontScaling={false}> 
           Qty
         </Text>
+        <Text style={[styles.tableHeader, { width: colUnit, fontSize: fontSize.normal, lineHeight: fontSize.normal * lineHeights.default, fontFamily: defaultPrintFontSemibold }]} allowFontScaling={false}> 
+          Unit
+        </Text>
         <Text style={[styles.tableHeader, styles.textRight, { width: colPrice, fontSize: fontSize.normal, lineHeight: fontSize.normal * lineHeights.default, fontFamily: defaultPrintFontSemibold }]} allowFontScaling={false}> 
           Price
         </Text>
@@ -187,6 +191,9 @@ const ReceiptView: React.FC<ReceiptViewProps> = ({
           </Text>
           <Text style={[styles.tableCell, styles.textCenter, { width: colQty, fontSize: fontSize.normal, lineHeight: fontSize.normal * lineHeights.itemName, fontFamily: defaultPrintFont }]} allowFontScaling={false}> 
             {item.quantity}
+          </Text>
+          <Text style={[styles.tableCell, { width: colUnit, fontSize: fontSize.normal, lineHeight: fontSize.normal * lineHeights.itemName, fontFamily: defaultPrintFont }]} allowFontScaling={false}> 
+            {item.unit}
           </Text>
           <Text style={[styles.tableCell, styles.textRight, { width: colPrice, fontSize: fontSize.normal, lineHeight: fontSize.normal * lineHeights.itemName, fontFamily: defaultPrintFont }]} allowFontScaling={false}> 
             {item.unitPrice.toLocaleString()}

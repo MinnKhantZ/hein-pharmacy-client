@@ -28,6 +28,7 @@ interface InventoryItem {
   id: number;
   name: string;
   category: string;
+  unit: string;
   quantity: number;
   selling_price: number;
   owner_name: string;
@@ -37,6 +38,7 @@ interface InventoryItem {
 interface SaleItem {
   inventory_item_id: number;
   name: string;
+  unit?: string;
   quantity: number;
   unit_price: number;
   total: number;
@@ -58,6 +60,7 @@ interface SaleRecord {
   items: {
     id: number;
     item_name: string;
+    unit?: string;
     quantity: number;
     unit_price: number;
     total_price: number;
@@ -237,6 +240,7 @@ export default function SalesScreen() {
       setSaleItems([...saleItems, {
         inventory_item_id: item.id,
         name: item.name,
+        unit: item.unit,
         quantity: 1,
         unit_price: Number(item.selling_price),
         total: Number(item.selling_price),
@@ -513,7 +517,7 @@ export default function SalesScreen() {
                 {sale.items.slice(0, 2).map((item) => (
                   <View key={item.id} style={styles.saleItemRow}>
                     <Text style={styles.saleItemName} numberOfLines={1}>
-                      {item.item_name} × {item.quantity}
+                      {item.item_name} × {item.quantity} {item.unit || 'unit'}
                     </Text>
                     <Text style={styles.saleItemPrice}>{formatPrice(Number(item.total_price))}</Text>
                   </View>
@@ -609,7 +613,7 @@ export default function SalesScreen() {
                                     {t('Owner:')} {item.owner_name}
                                   </Text>
                                   <Text style={[styles.inventoryItemDetails, isDesktop && styles.inventoryItemDetailsDesktop]}>
-                                    {item.category} • Stock: {item.quantity} • {formatPrice(item.selling_price)}
+                                    {item.category} • Stock: {item.quantity} {item.unit} • {formatPrice(item.selling_price)} ({item.unit})
                                   </Text>
                                 </View>
                               </TouchableOpacity>
@@ -637,7 +641,7 @@ export default function SalesScreen() {
                                 <Text style={[styles.cartItemName, isDesktop && styles.cartItemNameDesktop]}>{item.name}</Text>
                                 <Text style={[styles.cartItemOwner, isDesktop && styles.cartItemOwnerDesktop]}>{t('Owner:')} {item.owner_name}</Text>
                                 <Text style={[styles.cartItemPrice, isDesktop && styles.cartItemPriceDesktop]}>
-                                  {formatPrice(item.unit_price)} × {item.quantity} = {formatPrice(item.total)}
+                                  {formatPrice(item.unit_price)} × {item.quantity} {item.unit} = {formatPrice(item.total)}
                                 </Text>
                               </View>
                               <View style={[styles.cartItemActions, isDesktop && styles.cartItemActionsDesktop]}>
@@ -760,7 +764,7 @@ export default function SalesScreen() {
                                   {t('Owner:')} {item.owner_name}
                                 </Text>
                                 <Text style={styles.inventoryItemDetails}>
-                                  {item.category} • Stock: {item.quantity} • {formatPrice(item.selling_price)}
+                                  {item.category} • Stock: {item.quantity} {item.unit} • {formatPrice(item.selling_price)} ({item.unit})
                                 </Text>
                               </View>
                             </TouchableOpacity>
@@ -788,7 +792,7 @@ export default function SalesScreen() {
                               <Text style={styles.cartItemName}>{item.name}</Text>
                               <Text style={styles.cartItemOwner}>{t('Owner:')} {item.owner_name}</Text>
                               <Text style={styles.cartItemPrice}>
-                                {formatPrice(item.unit_price)} × {item.quantity} = {formatPrice(item.total)}
+                                {formatPrice(item.unit_price)} × {item.quantity} {item.unit} = {formatPrice(item.total)}
                               </Text>
                             </View>
                             <View style={styles.cartItemActions}>

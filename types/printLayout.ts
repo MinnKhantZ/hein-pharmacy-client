@@ -29,13 +29,15 @@ export interface PrintFontSizes {
  * These should add up to approximately 1.0 (100%)
  */
 export interface PrintColumnWidths {
-  /** Item name column (default: 0.45 = 45%) */
+  /** Item name column (default: 0.38 = 38%) */
   name: number;
-  /** Quantity column (default: 0.10 = 10%) */
+  /** Unit column (default: 0.15 = 15%) */
+  unit: number;
+  /** Quantity column (default: 0.09 = 9%) */
   quantity: number;
-  /** Unit price column (default: 0.20 = 20%) */
+  /** Unit price column (default: 0.18 = 18%) */
   price: number;
-  /** Total column (default: 0.23 = 23%) */
+  /** Total column (default: 0.20 = 20%) */
   total: number;
 }
 
@@ -117,10 +119,11 @@ export const DEFAULT_PRINT_LAYOUT: PrintLayoutConfig = {
     total: 28,
   },
   columnWidths: {
-    name: 0.45,
+    name: 0.40,
     quantity: 0.10,
+    unit: 0.10,
     price: 0.20,
-    total: 0.25,
+    total: 0.20,
   },
   margins: {
     dividerVertical: 10,

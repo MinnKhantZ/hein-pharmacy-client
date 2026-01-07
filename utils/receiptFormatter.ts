@@ -9,6 +9,7 @@ export interface ReceiptData {
   customerPhone?: string;
   items: {
     name: string;
+    unit?: string;
     quantity: number;
     unitPrice: number;
     total: number;
@@ -20,6 +21,7 @@ export interface ReceiptData {
 
 interface SaleItem {
   item_name: string;
+  unit: string;
   quantity: number;
   unit_price: number;
   total_price: number;
@@ -56,6 +58,7 @@ export const formatReceiptData = (sale: SaleRecord, storeConfig?: {
   // Format items with better precision handling
   const items = sale.items.map(item => ({
     name: item.item_name,
+    unit: item.unit,
     quantity: item.quantity,
     unitPrice: Number(item.unit_price),
     total: Number(item.total_price),

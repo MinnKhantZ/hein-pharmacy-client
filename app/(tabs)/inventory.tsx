@@ -32,6 +32,7 @@ interface InventoryItem {
   name: string;
   description: string;
   category: string;
+  unit: string;
   quantity: number;
   unit_price: number;
   selling_price: number;
@@ -84,6 +85,7 @@ export default function InventoryScreen() {
     name: '',
     description: '',
     category: '',
+    unit: '',
     quantity: '',
     unit_price: '',
     selling_price: '',
@@ -215,10 +217,11 @@ export default function InventoryScreen() {
       name: '',
       description: '',
       category: '',
+      unit: '',
       quantity: '',
       unit_price: '',
       selling_price: '',
-      minimum_stock: '10',
+      minimum_stock: '',
       owner_id: '',
     });
     setShowAddModal(true);
@@ -230,6 +233,7 @@ export default function InventoryScreen() {
       name: item.name,
       description: item.description || '',
       category: item.category || '',
+      unit: item.unit || 'unit',
       quantity: item.quantity.toString(),
       unit_price: item.unit_price.toString(),
       selling_price: item.selling_price.toString(),
@@ -256,6 +260,7 @@ export default function InventoryScreen() {
         name: formData.name,
         description: formData.description,
         category: formData.category,
+        unit: formData.unit,
         quantity: parseInt(formData.quantity),
         unit_price: parseFloat(formData.unit_price),
         selling_price: parseFloat(formData.selling_price),
@@ -440,7 +445,7 @@ export default function InventoryScreen() {
               <Text style={styles.itemCategory}>{item.category}</Text>
               <Text style={styles.itemDescription}>{item.description}</Text>
               <View style={styles.itemDetails}>
-                <Text style={styles.detailText}>{t('Qty:')} {item.quantity}</Text>
+                <Text style={styles.detailText}>{t('Qty:')} {item.quantity} {item.unit}</Text>
                 <Text style={styles.detailText}>{t('Price:')} {formatPrice(item.selling_price)}</Text>
                 <Text style={styles.detailText}>{t('Owner:')} {item.owner_name}</Text>
               </View>
@@ -514,6 +519,13 @@ export default function InventoryScreen() {
                 onNewValueAdded={(newCategory: string) => {
                   setCategories([...categories, newCategory]);
                 }}
+              />
+              <TextInput
+                style={styles.input}
+                placeholder={t('Unit (e.g., box, tablet) *')}
+                value={formData.unit}
+                onChangeText={(text) => setFormData({ ...formData, unit: text })}
+                placeholderTextColor={placeholderTextColor}
               />
               <TextInput
                 style={[styles.input, styles.textArea]}

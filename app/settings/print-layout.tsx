@@ -1,9 +1,15 @@
 import { Ionicons } from "@expo/vector-icons";
-import React, { useState } from "react";
+import { useNavigation } from "@react-navigation/native";
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { useTranslation } from "react-i18next";
 import {
   Alert,
-  Modal,
   ScrollView,
   StyleSheet,
   Text,
@@ -16,7 +22,66 @@ import {
   useSafeAreaInsets,
 } from "react-native-safe-area-context";
 import { usePrintLayout } from "../../contexts/PrintLayoutContext";
-import { DEFAULT_PRINT_LAYOUT } from "../../types/printLayout";
+import {
+  DEFAULT_PRINT_LAYOUT,
+  PRINT_LAYOUT_PRESETS,
+  PrintLayoutConfig,
+} from "../../types/printLayout";
+
+/**
+ * Helper to set a nested value in an object using dot notation path
+ */
+const setNestedValue = <T extends object>(
+  obj: T,
+  path: string,
+  value: number,
+): T => {
+  const keys = path.split(".");
+  const result = JSON.parse(JSON.stringify(obj)) as T;
+
+  let current: any = result;
+
+  for (let i = 0; i < keys.length - 1; i++) {
+    const key = keys[i];
+    current[key] = { ...current[key] };
+    current = current[key];
+  }
+
+  current[keys[keys.length - 1]] = value;
+  return result;
+};
+
+/**
+ * Deep merge two objects (used to ensure new fields exist)
+ */
+const deepMerge = <T extends object>(target: T, source: Partial<T>): T => {
+  const result = { ...target };
+
+  for (const key in source) {
+    if (Object.prototype.hasOwnProperty.call(source, key)) {
+      const sourceValue = (source as any)[key];
+      const targetValue = (target as any)[key];
+
+      if (
+        sourceValue !== null &&
+        typeof sourceValue === "object" &&
+        !Array.isArray(sourceValue) &&
+        targetValue !== null &&
+        typeof targetValue === "object" &&
+        !Array.isArray(targetValue)
+      ) {
+        (result as any)[key] = deepMerge(
+          targetValue as object,
+          sourceValue as object,
+        );
+      } else if (sourceValue !== undefined) {
+        (result as any)[key] = sourceValue;
+      }
+    }
+  }
+
+  return result;
+};
 
 interface NumberInputRowProps {
   label: string;
@@ -101,20 +166,13 @@ const NumberInputRow: React.FC<NumberInputRowProps> = ({
 export default function PrintLayoutSettingsScreen() {
   const { t } = useTranslation();
   const insets = useSafeAreaInsets();
-  const {
-    config,
-    isLoading,
-    updateConfigValue,
-    resetToDefault,
-    applyPreset,
-    getPresetNames,
-    exportConfig,
-    importConfig,
-  } = usePrintLayout();
+  const navigation = useNavigation();
+  const { config: savedConfig, isLoading, saveConfig } = usePrintLayout();
 
-  const [importModalVisible, setImportModalVisible] = useState(false);
-  const [exportModalVisible, setExportModalVisible] = useState(false);
-  const [importText, setImportText] = useState("");
+  const [config, setConfig] = useState<PrintLayoutConfig>(savedConfig);
+  const [lastSaved, setLastSaved] = useState<PrintLayoutConfig>(savedConfig);
+  const [isSaving, setIsSaving] = useState(false);
+  const hasUserEditedRef = useRef(false);
   const [expandedSections, setExpandedSections] = useState<
     Record<string, boolean>
   >({
@@ -132,26 +190,64 @@ export default function PrintLayoutSettingsScreen() {
     }));
   };
 
-  const handleExport = () => {
-    setExportModalVisible(true);
+  // Keep local draft in sync with saved config when user hasn't started editing
+  useEffect(() => {
+    if (isLoading) return;
+    if (!hasUserEditedRef.current) {
+      setConfig(savedConfig);
+      setLastSaved(savedConfig);
+    }
+  }, [isLoading, savedConfig]);
+
+  const isDirty = useMemo(() => {
+    try {
+      return JSON.stringify(config) !== JSON.stringify(lastSaved);
+    } catch {
+      return true;
+    }
+  }, [config, lastSaved]);
+
+  const updateConfigValue = (path: string, value: number) => {
+    hasUserEditedRef.current = true;
+    setConfig((prev) => setNestedValue(prev, path, value));
   };
 
-  const handleImport = async () => {
-    const success = await importConfig(importText);
-    if (success) {
-      setImportModalVisible(false);
-      setImportText("");
-      Alert.alert(
-        t("Success"),
-        t("Print layout configuration imported successfully."),
-      );
-    } else {
+  const applyPreset = (presetName: string) => {
+    const preset = PRINT_LAYOUT_PRESETS[presetName];
+    if (!preset) return;
+    hasUserEditedRef.current = true;
+    setConfig(preset);
+  };
+
+  const resetToDefault = () => {
+    hasUserEditedRef.current = true;
+    setConfig(DEFAULT_PRINT_LAYOUT);
+  };
+
+  const getPresetNames = () => Object.keys(PRINT_LAYOUT_PRESETS);
+
+  const handleSave = useCallback(async (): Promise<boolean> => {
+    if (!isDirty) return true;
+
+    setIsSaving(true);
+    try {
+      const merged = deepMerge(DEFAULT_PRINT_LAYOUT, config);
+      await saveConfig(merged);
+      setConfig(merged);
+      setLastSaved(merged);
+      hasUserEditedRef.current = false;
+      Alert.alert(t("Success"), t("Saved"));
+      return true;
+    } catch (error: any) {
       Alert.alert(
         t("Error"),
-        t("Failed to import configuration. Please check the format."),
+        error?.response?.data?.error || error?.message || t("Failed to save"),
       );
+      return false;
+    } finally {
+      setIsSaving(false);
     }
-  };
+  }, [config, isDirty, saveConfig, t]);
 
   const handleReset = () => {
     Alert.alert(
@@ -176,6 +272,47 @@ export default function PrintLayoutSettingsScreen() {
       ],
     );
   };
+
+  // Warn before leaving screen if there are unsaved changes
+  useEffect(() => {
+    const unsubscribe = (navigation as any).addListener?.(
+      "beforeRemove",
+      (e: any) => {
+        if (!isDirty) return;
+
+        e.preventDefault();
+
+        Alert.alert(
+          t("Unsaved Changes"),
+          t("You have unsaved changes. Do you want to save before leaving?"),
+          [
+            { text: t("Cancel"), style: "cancel" },
+            {
+              text: t("Don't Save"),
+              style: "destructive",
+              onPress: () => {
+                // Discard local changes
+                setConfig(lastSaved);
+                hasUserEditedRef.current = false;
+                (navigation as any).dispatch(e.data.action);
+              },
+            },
+            {
+              text: t("Save"),
+              onPress: async () => {
+                const ok = await handleSave();
+                if (ok) {
+                  (navigation as any).dispatch(e.data.action);
+                }
+              },
+            },
+          ],
+        );
+      },
+    );
+
+    return unsubscribe;
+  }, [navigation, isDirty, lastSaved, handleSave, t]);
 
   if (isLoading) {
     return (
@@ -555,29 +692,6 @@ export default function PrintLayoutSettingsScreen() {
           )}
         </View>
 
-        {/* Import/Export Section */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitleStatic}>{t("Import / Export")}</Text>
-          <View style={styles.actionButtons}>
-            <TouchableOpacity
-              style={styles.actionButton}
-              onPress={handleExport}
-            >
-              <Ionicons name="copy-outline" size={20} color="#2196F3" />
-              <Text style={styles.actionButtonText}>{t("Export Config")}</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={styles.actionButton}
-              onPress={() => setImportModalVisible(true)}
-            >
-              <Ionicons name="clipboard-outline" size={20} color="#2196F3" />
-              <Text style={styles.actionButtonText}>
-                {t("Import from Text")}
-              </Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-
         {/* Reset Button */}
         <TouchableOpacity style={styles.resetButton} onPress={handleReset}>
           <Ionicons name="refresh-outline" size={20} color="#f44336" />
@@ -585,82 +699,22 @@ export default function PrintLayoutSettingsScreen() {
             {t("Reset All to Default")}
           </Text>
         </TouchableOpacity>
+
+        {/* Save Button */}
+        <TouchableOpacity
+          style={[
+            styles.saveButton,
+            (!isDirty || isSaving) && styles.saveButtonDisabled,
+          ]}
+          onPress={handleSave}
+          disabled={!isDirty || isSaving}
+        >
+          <Ionicons name="save-outline" size={20} color="#fff" />
+          <Text style={styles.saveButtonText}>
+            {isSaving ? t("Saving...") : t("Save")}
+          </Text>
+        </TouchableOpacity>
       </ScrollView>
-
-      {/* Import Modal */}
-      <Modal
-        visible={importModalVisible}
-        animationType="slide"
-        transparent={true}
-        onRequestClose={() => setImportModalVisible(false)}
-      >
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>{t("Import Configuration")}</Text>
-            <Text style={styles.modalHint}>
-              {t("Paste the JSON configuration below:")}
-            </Text>
-            <TextInput
-              style={styles.importTextInput}
-              value={importText}
-              onChangeText={setImportText}
-              multiline
-              placeholder='{"paperWidth": 576, ...}'
-              autoCapitalize="none"
-              autoCorrect={false}
-            />
-            <View style={styles.modalButtons}>
-              <TouchableOpacity
-                style={[styles.modalButton, styles.modalButtonCancel]}
-                onPress={() => {
-                  setImportModalVisible(false);
-                  setImportText("");
-                }}
-              >
-                <Text style={styles.modalButtonCancelText}>{t("Cancel")}</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.modalButton, styles.modalButtonConfirm]}
-                onPress={handleImport}
-              >
-                <Text style={styles.modalButtonConfirmText}>{t("Import")}</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        </View>
-      </Modal>
-
-      {/* Export Modal */}
-      <Modal
-        visible={exportModalVisible}
-        animationType="slide"
-        transparent={true}
-        onRequestClose={() => setExportModalVisible(false)}
-      >
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>{t("Export Configuration")}</Text>
-            <Text style={styles.modalHint}>
-              {t("Copy the JSON configuration below:")}
-            </Text>
-            <TextInput
-              style={styles.importTextInput}
-              value={exportConfig()}
-              multiline
-              editable={false}
-              selectTextOnFocus
-            />
-            <View style={styles.modalButtons}>
-              <TouchableOpacity
-                style={[styles.modalButton, styles.modalButtonConfirm]}
-                onPress={() => setExportModalVisible(false)}
-              >
-                <Text style={styles.modalButtonConfirmText}>{t("Done")}</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        </View>
-      </Modal>
     </SafeAreaView>
   );
 }
@@ -815,6 +869,24 @@ const styles = StyleSheet.create({
     color: "#f44336",
     fontSize: 16,
     fontWeight: "500",
+  },
+  saveButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    paddingVertical: 16,
+    backgroundColor: "#2196F3",
+    borderRadius: 12,
+    marginBottom: 20,
+  },
+  saveButtonDisabled: {
+    opacity: 0.6,
+  },
+  saveButtonText: {
+    color: "#fff",
+    fontSize: 16,
+    fontWeight: "600",
   },
   modalOverlay: {
     flex: 1,

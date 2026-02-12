@@ -1,28 +1,28 @@
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import * as Localization from 'expo-localization';
-import i18n from 'i18next';
-import { initReactI18next } from 'react-i18next';
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import * as Localization from "expo-localization";
+import i18n from "i18next";
+import { initReactI18next } from "react-i18next";
 
 // Get stored language or fallback to device language
 const getInitialLanguage = async () => {
   try {
-    const storedLanguage = await AsyncStorage.getItem('userLanguage');
+    const storedLanguage = await AsyncStorage.getItem("userLanguage");
     if (storedLanguage) {
       return storedLanguage;
     }
   } catch (error) {
-    console.error('Error getting stored language:', error);
+    console.error("Error getting stored language:", error);
   }
-  return Localization.getLocales()[0]?.languageCode || 'en';
+  return Localization.getLocales()[0]?.languageCode || "en";
 };
 
 // Function to change language and persist it
 export const changeLanguage = async (language) => {
   try {
-    await AsyncStorage.setItem('userLanguage', language);
+    await AsyncStorage.setItem("userLanguage", language);
     await i18n.changeLanguage(language);
   } catch (error) {
-    console.error('Error changing language:', error);
+    console.error("Error changing language:", error);
   }
 };
 
@@ -31,34 +31,34 @@ const resources = {
   en: {
     translation: {
       // Common
-      "Welcome": "Welcome",
-      "Login": "Login",
-      "Logout": "Logout",
-      "Save": "Save",
-      "Cancel": "Cancel",
-      "Delete": "Delete",
-      "Edit": "Edit",
-      "Add": "Add",
-      "Search": "Search",
-      "Loading": "Loading...",
-      "Error": "Error",
-      "Success": "Success",
+      Welcome: "Welcome",
+      Login: "Login",
+      Logout: "Logout",
+      Save: "Save",
+      Cancel: "Cancel",
+      Delete: "Delete",
+      Edit: "Edit",
+      Add: "Add",
+      Search: "Search",
+      Loading: "Loading...",
+      Error: "Error",
+      Success: "Success",
 
       // Navigation
-      "Dashboard": "Dashboard",
-      "Home": "Home",
-      "Inventory": "Inventory",
-      "Sales": "Sales",
-      "Income": "Income",
-      "Analytics": "Analytics",
-      "Profile": "Profile",
+      Dashboard: "Dashboard",
+      Home: "Home",
+      Inventory: "Inventory",
+      Sales: "Sales",
+      Income: "Income",
+      Analytics: "Analytics",
+      Profile: "Profile",
 
       // Auth
-      "Username": "Username",
-      "Password": "Password",
+      Username: "Username",
+      Password: "Password",
       "Full Name": "Full Name",
-      "Email": "Email",
-      "Phone": "Phone",
+      Email: "Email",
+      Phone: "Phone",
       "Login to your account": "Login to your account",
       "Create new account": "Create new account",
       "Sign In": "Sign In",
@@ -68,10 +68,13 @@ const resources = {
       "Please fill in all fields": "Please fill in all fields",
       "Login Failed": "Login Failed",
       "An unexpected error occurred": "An unexpected error occurred",
-      "Please fill in required fields (username, password, full name)": "Please fill in required fields (username, password, full name)",
-      "Password must be at least 6 characters long": "Password must be at least 6 characters long",
+      "Please fill in required fields (username, password, full name)":
+        "Please fill in required fields (username, password, full name)",
+      "Password must be at least 6 characters long":
+        "Password must be at least 6 characters long",
       "Registration Failed": "Registration Failed",
-      "Registration successful! Please login.": "Registration successful! Please login.",
+      "Registration successful! Please login.":
+        "Registration successful! Please login.",
       "Create Account": "Create Account",
       "Creating Account...": "Creating Account...",
       "Already have an account?": "Already have an account?",
@@ -88,14 +91,14 @@ const resources = {
       // Inventory
       "Add New Item": "Add New Item",
       "Item Name": "Item Name",
-      "Category": "Category",
-      "Quantity": "Quantity",
+      Category: "Category",
+      Quantity: "Quantity",
       "Unit Price": "Unit Price",
       "Selling Price": "Selling Price",
       "Minimum Stock": "Minimum Stock",
-      "Description": "Description",
-      "Stock": "Stock",
-      "Price": "Price",
+      Description: "Description",
+      Stock: "Stock",
+      Price: "Price",
       "+ Add Item": "+ Add Item",
       "Search items...": "Search items...",
       "Filter by Owner": "Filter by Owner",
@@ -127,9 +130,10 @@ const resources = {
       "Quantity *": "Quantity *",
       "Unit Price *": "Unit Price *",
       "Selling Price *": "Selling Price *",
-      "Owner": "Owner",
+      Owner: "Owner",
       "Save Item": "Save Item",
-      "Please fill in all required fields": "Please fill in all required fields",
+      "Please fill in all required fields":
+        "Please fill in all required fields",
       "Please select an owner": "Please select an owner",
       "Select Owner": "Select Owner",
       "Select existing category": "Select existing category",
@@ -156,33 +160,37 @@ const resources = {
       "Customer Name": "Customer Name",
       "Customer Phone": "Customer Phone",
       "Payment Method": "Payment Method",
-      "Cash": "Cash",
-      "Card": "Card",
-      "Notes": "Notes",
+      Cash: "Cash",
+      Card: "Card",
+      Notes: "Notes",
       "Add Item": "Add Item",
-      "Total": "Total",
+      Total: "Total",
       "Complete Sale": "Complete Sale",
       "Sales History": "Sales History",
       "Start typing to search items": "Start typing to search items",
-      "Cart": "Cart",
-      "items": "items",
+      Cart: "Cart",
+      items: "items",
       "No items in cart": "No items in cart",
       "Total:": "Total:",
       "Customer Information (Optional)": "Customer Information (Optional)",
-      "Mobile": "Mobile Wallet",
-      "Credit": "Credit",
+      Mobile: "Mobile Wallet",
+      Credit: "Credit",
       "Mark as Paid": "Mark as Paid",
-      "Paid": "Paid",
+      Paid: "Paid",
       "Paid on:": "Paid on:",
-      "Are you sure you want to mark this sale as paid? This will add it to the income for the original sale date.": "Are you sure you want to mark this sale as paid? This will add it to the income for the original sale date.",
+      "Are you sure you want to mark this sale as paid? This will add it to the income for the original sale date.":
+        "Are you sure you want to mark this sale as paid? This will add it to the income for the original sale date.",
       "Sale marked as paid successfully": "Sale marked as paid successfully",
       "Failed to mark sale as paid": "Failed to mark sale as paid",
       "Search & Add Items": "Search & Add Items",
-      "Search inventory by name or category...": "Search inventory by name or category...",
-      "Search by customer name, phone, or item...": "Search by customer name, phone, or item...",
+      "Search inventory by name or category...":
+        "Search inventory by name or category...",
+      "Search by customer name, phone, or item...":
+        "Search by customer name, phone, or item...",
       "+ New Sale": "+ New Sale",
       "No sales records yet": "No sales records yet",
-      "Record your first sale by clicking the \"New Sale\" button above": "Record your first sale by clicking the \"New Sale\" button above",
+      'Record your first sale by clicking the "New Sale" button above':
+        'Record your first sale by clicking the "New Sale" button above',
       "Sale #": "Sale #",
       "Customer:": "Customer:",
       "Payment:": "Payment:",
@@ -195,16 +203,16 @@ const resources = {
 
       // Sales Filters
       "Sort by:": "Sort by:",
-      "Date": "Date",
-      "Amount": "Amount",
-      "Customer": "Customer",
+      Date: "Date",
+      Amount: "Amount",
+      Customer: "Customer",
 
       // Income
       "Total Income": "Total Income",
       "Total Sales": "Total Sales",
       "Monthly Summary": "Monthly Summary",
       "Income Analytics": "Income Analytics",
-      "All": "All",
+      All: "All",
       "Income Trend": "Income Trend",
       "Income by Owner": "Income by Owner",
       "Income Distribution": "Income Distribution",
@@ -219,22 +227,22 @@ const resources = {
       "All Records": "All Records",
 
       // Income Periods
-      "Daily": "Daily",
-      "Monthly": "Monthly",
-      "Yearly": "Yearly",
+      Daily: "Daily",
+      Monthly: "Monthly",
+      Yearly: "Yearly",
 
       // Settings
-      "Settings": "Settings",
+      Settings: "Settings",
       "App Preferences": "App Preferences",
-      "Language": "Language",
-      "Account": "Account",
-      "Notifications": "Notifications",
-      "About": "About",
+      Language: "Language",
+      Account: "Account",
+      Notifications: "Notifications",
+      About: "About",
       "Change Password": "Change Password",
       "Privacy Settings": "Privacy Settings",
       "Low Stock Alerts": "Low Stock Alerts",
       "Sales Notifications": "Sales Notifications",
-      "Version": "Version",
+      Version: "Version",
       "Terms & Conditions": "Terms & Conditions",
       "Current Password": "Current Password",
       "New Password": "New Password",
@@ -244,48 +252,60 @@ const resources = {
       "Confirm new password": "Confirm new password",
       "Password changed successfully": "Password changed successfully",
       "Passwords do not match": "Passwords do not match",
-      "Password must be at least 6 characters": "Password must be at least 6 characters",
+      "Password must be at least 6 characters":
+        "Password must be at least 6 characters",
       "Current password is required": "Current password is required",
       "New password is required": "New password is required",
       "Show Account Activity": "Show Account Activity",
       "Data Collection": "Data Collection",
       "Share Usage Data": "Share Usage Data",
       "Enable Low Stock Alerts": "Enable Low Stock Alerts",
-      "Get notified when items are running low": "Get notified when items are running low",
+      "Get notified when items are running low":
+        "Get notified when items are running low",
       "Enable Sales Notifications": "Enable Sales Notifications",
       "Get notified about daily sales": "Get notified about daily sales",
       "Notification Settings": "Notification Settings",
       "Alert Time": "Alert Time",
       "Set Alert Time": "Set Alert Time",
-      "Daily low stock notifications will be sent at this time": "Daily low stock notifications will be sent at this time",
+      "Daily low stock notifications will be sent at this time":
+        "Daily low stock notifications will be sent at this time",
       "rounded to nearest 10 minutes": "rounded to nearest 10 minutes",
       "Time Adjusted": "Time Adjusted",
-      "Notification time has been rounded to the nearest 10-minute interval.": "Notification time has been rounded to the nearest 10-minute interval.",
-      "Hour": "Hour",
-      "Minute": "Minute",
+      "Notification time has been rounded to the nearest 10-minute interval.":
+        "Notification time has been rounded to the nearest 10-minute interval.",
+      Hour: "Hour",
+      Minute: "Minute",
       "Alert time updated successfully": "Alert time updated successfully",
       "Hour must be between 0 and 23": "Hour must be between 0 and 23",
       "Minute must be between 0 and 59": "Minute must be between 0 and 59",
-      "Failed to update notification settings": "Failed to update notification settings",
+      "Failed to update notification settings":
+        "Failed to update notification settings",
       "Privacy Policy": "Privacy Policy",
       "About Hein Pharmacy": "About Hein Pharmacy",
-      "A comprehensive pharmacy management system": "A comprehensive pharmacy management system",
+      "A comprehensive pharmacy management system":
+        "A comprehensive pharmacy management system",
       "Contact Us": "Contact Us",
       "Terms of Service": "Terms of Service",
-      "Terms of Service Content": "This Hein Pharmacy Management System is a private application developed exclusively for Hein Pharmacy. Access is restricted to authorized personnel only. By using this application, you agree to maintain the confidentiality of all patient information, business data, and proprietary information accessed through the system. Unauthorized use, distribution, or disclosure of information is strictly prohibited.",
-      "Privacy Policy Content": "Hein Pharmacy is committed to protecting the privacy of our customers and maintaining the confidentiality of all health-related information. All data is stored securely on our private servers and will never be shared with third parties without explicit consent or legal requirement. We comply with all applicable data protection regulations.",
+      "Terms of Service Content":
+        "This Hein Pharmacy Management System is a private application developed exclusively for Hein Pharmacy. Access is restricted to authorized personnel only. By using this application, you agree to maintain the confidentiality of all patient information, business data, and proprietary information accessed through the system. Unauthorized use, distribution, or disclosure of information is strictly prohibited.",
+      "Privacy Policy Content":
+        "Hein Pharmacy is committed to protecting the privacy of our customers and maintaining the confidentiality of all health-related information. All data is stored securely on our private servers and will never be shared with third parties without explicit consent or legal requirement. We comply with all applicable data protection regulations.",
       "Data Security": "Data Security",
-      "Data Security Content": "All sensitive information including patient data, inventory records, and financial information is encrypted using industry-standard encryption protocols. Access is protected by secure authentication mechanisms. Users are responsible for maintaining the security of their login credentials and must report any suspected security breaches immediately.",
-      "Support Contact": "For technical support or inquiries, please contact the Hein Pharmacy IT support team directly.",
+      "Data Security Content":
+        "All sensitive information including patient data, inventory records, and financial information is encrypted using industry-standard encryption protocols. Access is protected by secure authentication mechanisms. Users are responsible for maintaining the security of their login credentials and must report any suspected security breaches immediately.",
+      "Support Contact":
+        "For technical support or inquiries, please contact the Hein Pharmacy IT support team directly.",
       "Last Updated": "Last Updated",
-      "Support": "Support",
+      Support: "Support",
       "Rate This App": "Rate This App",
-      "Done": "Done",
-      "Close": "Close",
+      Done: "Done",
+      Close: "Close",
       "Failed to change password": "Failed to change password",
       "Permissions Required": "Permissions Required",
-      "Please enable notifications in your device settings to receive alerts.": "Please enable notifications in your device settings to receive alerts.",
-      "Notification settings updated successfully": "Notification settings updated successfully",
+      "Please enable notifications in your device settings to receive alerts.":
+        "Please enable notifications in your device settings to receive alerts.",
+      "Notification settings updated successfully":
+        "Notification settings updated successfully",
 
       // Profile
       "Manage your account settings": "Manage your account settings",
@@ -295,20 +315,25 @@ const resources = {
       "Create New Owner Account": "Create New Owner Account",
       "Update Profile": "Update Profile",
       "Create Owner": "Create Owner",
-      "Address": "Address",
+      Address: "Address",
       "Enter your address": "Enter your address",
-      "Username, password, and full name are required": "Username, password, and full name are required",
-      "New owner account created successfully": "New owner account created successfully",
+      "Username, password, and full name are required":
+        "Username, password, and full name are required",
+      "New owner account created successfully":
+        "New owner account created successfully",
       "Failed to create owner account": "Failed to create owner account",
       "Are you sure you want to logout?": "Are you sure you want to logout?",
       "Profile updated successfully": "Profile updated successfully",
       "Failed to update profile": "Failed to update profile",
-      "English": "English",
-      "Burmese": "Burmese",
-      "Create a new owner account that can manage inventory and sales.": "Create a new owner account that can manage inventory and sales.",
-      "Manage all owner accounts in the system.": "Manage all owner accounts in the system.",
+      English: "English",
+      Burmese: "Burmese",
+      "Create a new owner account that can manage inventory and sales.":
+        "Create a new owner account that can manage inventory and sales.",
+      "Manage all owner accounts in the system.":
+        "Manage all owner accounts in the system.",
       "No owners found": "No owners found",
-      "Are you sure you want to delete this owner?": "Are you sure you want to delete this owner?",
+      "Are you sure you want to delete this owner?":
+        "Are you sure you want to delete this owner?",
       "Owner deleted successfully": "Owner deleted successfully",
       "Failed to delete owner": "Failed to delete owner",
       "Delete Owner": "Delete Owner",
@@ -330,8 +355,8 @@ const resources = {
 
       // Print Layout Settings
       "Print Layout Settings": "Print Layout Settings",
-      "Printing": "Printing",
-      "Presets": "Presets",
+      Printing: "Printing",
+      Presets: "Presets",
       "General Settings": "General Settings",
       "Paper Width (dots)": "Paper Width (dots)",
       "Scale Factor": "Scale Factor",
@@ -346,9 +371,9 @@ const resources = {
       "Column Widths (%)": "Column Widths (%)",
       "Total: {{total}}%": "Total: {{total}}%",
       "Item Name": "Item Name",
-      "Quantity": "Quantity",
-      "Price": "Price",
-      "Margins": "Margins",
+      Quantity: "Quantity",
+      Price: "Price",
+      Margins: "Margins",
       "Divider Vertical": "Divider Vertical",
       "Info Section": "Info Section",
       "Info Row": "Info Row",
@@ -358,8 +383,8 @@ const resources = {
       "Footer Top": "Footer Top",
       "Footer Bottom": "Footer Bottom",
       "Line Heights": "Line Heights",
-      "Default": "Default",
-      "Footer": "Footer",
+      Default: "Default",
+      Footer: "Footer",
       "Divider Settings": "Divider Settings",
       "Char Width Ratio": "Char Width Ratio",
       "Letter Spacing": "Letter Spacing",
@@ -368,54 +393,67 @@ const resources = {
       "Import from Text": "Import from Text",
       "Reset All to Default": "Reset All to Default",
       "Import Configuration": "Import Configuration",
-      "Paste the JSON configuration below:": "Paste the JSON configuration below:",
+      "Paste the JSON configuration below:":
+        "Paste the JSON configuration below:",
       "Export Configuration": "Export Configuration",
-      "Copy the JSON configuration below:": "Copy the JSON configuration below:",
+      "Copy the JSON configuration below:":
+        "Copy the JSON configuration below:",
       "Reset to Default": "Reset to Default",
-      "Are you sure you want to reset all print layout settings to default?": "Are you sure you want to reset all print layout settings to default?",
+      "Are you sure you want to reset all print layout settings to default?":
+        "Are you sure you want to reset all print layout settings to default?",
       "Apply Preset": "Apply Preset",
-      "This will replace all current settings with the {{preset}} preset.": "This will replace all current settings with the {{preset}} preset.",
-      "Apply": "Apply",
-      "Reset": "Reset",
-      "Print layout configuration imported successfully.": "Print layout configuration imported successfully.",
-      "Failed to import configuration. Please check the format.": "Failed to import configuration. Please check the format.",
+      "This will replace all current settings with the {{preset}} preset.":
+        "This will replace all current settings with the {{preset}} preset.",
+      Apply: "Apply",
+      Reset: "Reset",
+      "Print layout configuration imported successfully.":
+        "Print layout configuration imported successfully.",
+      "Failed to import configuration. Please check the format.":
+        "Failed to import configuration. Please check the format.",
+      "Unsaved Changes": "Unsaved Changes",
+      "You have unsaved changes. Do you want to save before leaving?":
+        "You have unsaved changes. Do you want to save before leaving?",
+      "Don't Save": "Don't Save",
+      "Failed to save": "Failed to save",
+      "Saving...": "Saving...",
+      Saved: "Saved",
 
       // Currency
-      "currency": "Ks",
-      "currencySymbol": "Ks"
-    }
+      currency: "Ks",
+      currencySymbol: "Ks",
+    },
   },
   my: {
     translation: {
       // Common
-      "Welcome": "ကြိုဆိုပါသည်",
-      "Login": "ဝင်ရောက်မည်",
-      "Logout": "ထွက်မည်",
-      "Save": "သိမ်းမည်",
-      "Cancel": "ပယ်ဖျက်မည်",
-      "Delete": "ဖျက်မည်",
-      "Edit": "ပြင်ဆင်မည်",
-      "Add": "ထည့်မည်",
-      "Search": "ရှာဖွေမည်",
-      "Loading": "ဖွင့်နေသည်...",
-      "Error": "အမှား",
-      "Success": "အောင်မြင်သည်",
+      Welcome: "ကြိုဆိုပါသည်",
+      Login: "ဝင်ရောက်မည်",
+      Logout: "ထွက်မည်",
+      Save: "သိမ်းမည်",
+      Cancel: "ပယ်ဖျက်မည်",
+      Delete: "ဖျက်မည်",
+      Edit: "ပြင်ဆင်မည်",
+      Add: "ထည့်မည်",
+      Search: "ရှာဖွေမည်",
+      Loading: "ဖွင့်နေသည်...",
+      Error: "အမှား",
+      Success: "အောင်မြင်သည်",
 
       // Navigation
-      "Dashboard": "ဒက်ရှ်ဘုတ်",
-      "Home": "ပင်မ",
-      "Inventory": "စာရင်း",
-      "Sales": "ရောင်းအား",
-      "Income": "ဝင်ငွေ",
-      "Analytics": "စာရင်းအင်း",
-      "Profile": "ပရိုဖိုင်",
+      Dashboard: "ဒက်ရှ်ဘုတ်",
+      Home: "ပင်မ",
+      Inventory: "စာရင်း",
+      Sales: "ရောင်းအား",
+      Income: "ဝင်ငွေ",
+      Analytics: "စာရင်းအင်း",
+      Profile: "ပရိုဖိုင်",
 
       // Auth
-      "Username": "အသုံးပြုသူအမည်",
-      "Password": "စကားဝှက်",
+      Username: "အသုံးပြုသူအမည်",
+      Password: "စကားဝှက်",
       "Full Name": "အပြည့်အမည်",
-      "Email": "အီးမေးလ်",
-      "Phone": "ဖုန်း",
+      Email: "အီးမေးလ်",
+      Phone: "ဖုန်း",
       "Login to your account": "သင့်အကောင့်သို့ဝင်ရောက်ပါ",
       "Create new account": "အကောင့်အသစ်ဖန်တီးပါ",
       "Sign In": "ဝင်ရောက်မည်",
@@ -425,22 +463,27 @@ const resources = {
       "Please fill in all fields": "အချက်အလက်အားလုံးဖြည့်စွက်ပါ",
       "Login Failed": "ဝင်ရောက်မှုမအောင်မြင်ပါ",
       "An unexpected error occurred": "အမှားတစ်ခုဖြစ်ပွားခဲ့သည်",
-      "Please fill in required fields (username, password, full name)": "လိုအပ်သောအချက်အလက်များဖြည့်စွက်ပါ (အသုံးပြုသူအမည်၊ စကားဝှက်၊ အပြည့်အမည်)",
-      "Password must be at least 6 characters long": "စကားဝှက်သည်အနည်းဆုံး ၆ လုံးရှိရမည်",
+      "Please fill in required fields (username, password, full name)":
+        "လိုအပ်သောအချက်အလက်များဖြည့်စွက်ပါ (အသုံးပြုသူအမည်၊ စကားဝှက်၊ အပြည့်အမည်)",
+      "Password must be at least 6 characters long":
+        "စကားဝှက်သည်အနည်းဆုံး ၆ လုံးရှိရမည်",
       "Registration Failed": "စာရင်းသွင်းမှုမအောင်မြင်ပါ",
-      "Registration successful! Please login.": "စာရင်းသွင်းမှုအောင်မြင်သည်။ ဝင်ရောက်ပါ။",
+      "Registration successful! Please login.":
+        "စာရင်းသွင်းမှုအောင်မြင်သည်။ ဝင်ရောက်ပါ။",
       "Create Account": "အကောင့်ဖန်တီးမည်",
       "Creating Account...": "အကောင့်ဖန်တီးနေသည်...",
       "Already have an account?": "အကောင့်ရှိပြီးသားလား။",
       "Enter your full name": "သင့်အပြည့်အမည်ထည့်ပါ",
       "Enter your email (optional)": "သင့်အီးမေးလ်ထည့်ပါ (မဖြစ်မနေ မလိုအပ်ပါ)",
-      "Enter your phone (optional)": "သင့်ဖုန်းနံပါတ်ထည့်ပါ (မဖြစ်မနေ မလိုအပ်ပါ)",
+      "Enter your phone (optional)":
+        "သင့်ဖုန်းနံပါတ်ထည့်ပါ (မဖြစ်မနေ မလိုအပ်ပါ)",
       "Enter your phone number": "သင့်ဖုန်းနံပါတ်ထည့်ပါ",
       "Enter username": "အသုံးပြုသူအမည်ထည့်ပါ",
       "Enter password (min 6 characters)": "စကားဝှက်ထည့်ပါ (အနည်းဆုံး ၆ လုံး)",
       "Enter email (optional)": "အီးမေးလ်ထည့်ပါ (မဖြစ်မနေ မလိုအပ်ပါ)",
       "Enter phone number (optional)": "ဖုန်းနံပါတ်ထည့်ပါ (မဖြစ်မနေ မလိုအပ်ပါ)",
-      "Join Hein Pharmacy Management": "Hein Pharmacy စီမံခန့်ခွဲမှုသို့ဝင်ရောက်ပါ",
+      "Join Hein Pharmacy Management":
+        "Hein Pharmacy စီမံခန့်ခွဲမှုသို့ဝင်ရောက်ပါ",
 
       // Dashboard
       "Welcome back,": "ကြိုဆိုပါသည်၊",
@@ -456,14 +499,14 @@ const resources = {
       // Inventory
       "Add New Item": "ပစ္စည်းအသစ်ထည့်မည်",
       "Item Name": "ပစ္စည်းအမည်",
-      "Category": "အမျိုးအစား",
-      "Quantity": "အရေအတွက်",
+      Category: "အမျိုးအစား",
+      Quantity: "အရေအတွက်",
       "Unit Price": "တစ်ခုဈေးနှုန်း",
       "Selling Price": "ရောင်းဈေးနှုန်း",
       "Minimum Stock": "အနည်းဆုံးလက်ကျန်",
-      "Description": "ဖော်ပြချက်",
-      "Stock": "လက်ကျန်",
-      "Price": "ဈေးနှုန်း",
+      Description: "ဖော်ပြချက်",
+      Stock: "လက်ကျန်",
+      Price: "ဈေးနှုန်း",
       "+ Add Item": "+ ပစ္စည်းထည့်မည်",
       "Search items...": "ပစ္စည်းများရှာဖွေရန်...",
       "Filter by Owner": "ပိုင်ရှင်အလိုက်စစ်ထုတ်မည်",
@@ -487,7 +530,8 @@ const resources = {
       "Are you sure you want to delete": "ဖျက်လိုသည်မှာ သေချာပါသလား",
       "Item deleted successfully": "ပစ္စည်းဖျက်ခြင်းအောင်မြင်သည်",
       "Failed to delete item": "ပစ္စည်းဖျက်ခြင်းမအောင်မြင်ပါ",
-      "Failed to fetch inventory items": "စာရင်းပစ္စည်းများရယူခြင်းမအောင်မြင်ပါ",
+      "Failed to fetch inventory items":
+        "စာရင်းပစ္စည်းများရယူခြင်းမအောင်မြင်ပါ",
       "Failed to save item": "ပစ္စည်းသိမ်းဆည်းခြင်းမအောင်မြင်ပါ",
       "Item Name *": "ပစ္စည်းအမည် *",
       "Select or type below": "အောက်တွင်ရွေးချယ်ပါ သို့မဟုတ် ရိုက်ထည့်ပါ",
@@ -495,9 +539,10 @@ const resources = {
       "Quantity *": "အရေအတွက် *",
       "Unit Price *": "တစ်ခုဈေးနှုန်း *",
       "Selling Price *": "ရောင်းဈေးနှုန်း *",
-      "Owner": "ပိုင်ရှင်",
+      Owner: "ပိုင်ရှင်",
       "Save Item": "ပစ္စည်းသိမ်းဆည်းမည်",
-      "Please fill in all required fields": "လိုအပ်သောအချက်အလက်များအားလုံးဖြည့်စွက်ပါ",
+      "Please fill in all required fields":
+        "လိုအပ်သောအချက်အလက်များအားလုံးဖြည့်စွက်ပါ",
       "Please select an owner": "ပိုင်ရှင်ရွေးချယ်ပါ",
       "Select Owner": "ပိုင်ရှင်ရွေးချယ်ပါ",
       "Select existing category": "ရှိပြီးသားအမျိုးအစားရွေးချယ်ပါ",
@@ -511,33 +556,39 @@ const resources = {
       "Customer Name": "ဝယ်သူအမည်",
       "Customer Phone": "ဝယ်သူဖုန်း",
       "Payment Method": "ငွေပေးချေမှုနည်းလမ်း",
-      "Cash": "ငွေသား",
-      "Card": "ကတ်",
-      "Notes": "မှတ်စု",
+      Cash: "ငွေသား",
+      Card: "ကတ်",
+      Notes: "မှတ်စု",
       "Add Item": "ပစ္စည်းထည့်မည်",
-      "Total": "စုစုပေါင်း",
+      Total: "စုစုပေါင်း",
       "Complete Sale": "ရောင်းအားပြီးစီးမည်",
       "Sales History": "ရောင်းအားမှတ်တမ်း",
       "Start typing to search items": "ပစ္စည်းများရှာဖွေရန် ရိုက်ထည့်ပါ",
-      "Cart": "ဈေးခြင်းတောင်း",
-      "items": "ခု",
+      Cart: "ဈေးခြင်းတောင်း",
+      items: "ခု",
       "No items in cart": "ဈေးခြင်းတောင်းတွင် ပစ္စည်းများမရှိပါ",
       "Total:": "စုစုပေါင်း:",
       "Customer Information (Optional)": "ဝယ်သူအချက်အလက် (မဖြစ်မနေ မလိုအပ်ပါ)",
-      "Mobile": "မိုဘိုင်းဝေလ်လက်",
-      "Credit": "အကြွေး",
+      Mobile: "မိုဘိုင်းဝေလ်လက်",
+      Credit: "အကြွေး",
       "Mark as Paid": "ပေးပြီးဟု မှတ်မည်",
-      "Paid": "ပေးပြီး",
+      Paid: "ပေးပြီး",
       "Paid on:": "ပေးသည့်ရက်:",
-      "Are you sure you want to mark this sale as paid? This will add it to the income for the original sale date.": "ဤရောင်းအားကို ပေးပြီးဟု မှတ်လိုသည်မှာ သေချာပါသလား? ၎င်းသည် မူလရောင်းချသည့်ရက်စွဲအတွက် ဝင်ငွေတွင် ထည့်သွင်းမည်ဖြစ်သည်။",
-      "Sale marked as paid successfully": "ရောင်းအားကို ပေးပြီးဟု မှတ်ခြင်းအောင်မြင်သည်",
-      "Failed to mark sale as paid": "ရောင်းအားကို ပေးပြီးဟု မှတ်ခြင်းမအောင်မြင်ပါ",
+      "Are you sure you want to mark this sale as paid? This will add it to the income for the original sale date.":
+        "ဤရောင်းအားကို ပေးပြီးဟု မှတ်လိုသည်မှာ သေချာပါသလား? ၎င်းသည် မူလရောင်းချသည့်ရက်စွဲအတွက် ဝင်ငွေတွင် ထည့်သွင်းမည်ဖြစ်သည်။",
+      "Sale marked as paid successfully":
+        "ရောင်းအားကို ပေးပြီးဟု မှတ်ခြင်းအောင်မြင်သည်",
+      "Failed to mark sale as paid":
+        "ရောင်းအားကို ပေးပြီးဟု မှတ်ခြင်းမအောင်မြင်ပါ",
       "Search & Add Items": "ရှာဖွေပြီး ပစ္စည်းထည့်မည်",
-      "Search inventory by name or category...": "အမည် သို့မဟုတ် အမျိုးအစားအလိုက် စာရင်းရှာဖွေရန်...",
-      "Search by customer name, phone, or item...": "ဝယ်သူအမည်၊ ဖုန်း၊ ပစ္စည်း ရှာဖွေရန်...",
+      "Search inventory by name or category...":
+        "အမည် သို့မဟုတ် အမျိုးအစားအလိုက် စာရင်းရှာဖွေရန်...",
+      "Search by customer name, phone, or item...":
+        "ဝယ်သူအမည်၊ ဖုန်း၊ ပစ္စည်း ရှာဖွေရန်...",
       "+ New Sale": "+ ရောင်းအားအသစ်",
       "No sales records yet": "ရောင်းအားမှတ်တမ်းများမရှိသေးပါ",
-      "Record your first sale by clicking the \"New Sale\" button above": "အထက်ရှိ \"ရောင်းအားအသစ်\" ခလုတ်ကို နှိပ်ပြီး သင့်ပထမဆုံး ရောင်းအားကို မှတ်တမ်းတင်ပါ",
+      'Record your first sale by clicking the "New Sale" button above':
+        'အထက်ရှိ "ရောင်းအားအသစ်" ခလုတ်ကို နှိပ်ပြီး သင့်ပထမဆုံး ရောင်းအားကို မှတ်တမ်းတင်ပါ',
       "Sale #": "ရောင်းအား #",
       "Customer:": "ဝယ်သူ:",
       "Payment:": "ငွေပေးချေမှု:",
@@ -550,16 +601,16 @@ const resources = {
 
       // Sales Filters
       "Sort by:": "စီစဉ်ရန်:",
-      "Date": "ရက်စွဲ",
-      "Amount": "ပမာဏ",
-      "Customer": "ဝယ်သူ",
+      Date: "ရက်စွဲ",
+      Amount: "ပမာဏ",
+      Customer: "ဝယ်သူ",
 
       // Income
       "Total Income": "စုစုပေါင်းဝင်ငွေ",
       "Total Sales": "စုစုပေါင်းရောင်းအား",
       "Monthly Summary": "လအလိုက်အကျဉ်းချုပ်",
       "Income Analytics": "ဝင်ငွေစာရင်းအင်း",
-      "All": "အားလုံး",
+      All: "အားလုံး",
       "Income Trend": "ဝင်ငွေလမ်းကြောင်း",
       "Income by Owner": "ပိုင်ရှင်အလိုက်ဝင်ငွေ",
       "Income Distribution": "ဝင်ငွေဖြန့်ဖြူးမှု",
@@ -574,22 +625,22 @@ const resources = {
       "All Records": "မှတ်တမ်းအားလုံး",
 
       // Income Periods
-      "Daily": "နေ့စဉ်",
-      "Monthly": "လအလိုက်",
-      "Yearly": "နှစ်အလိုက်",
+      Daily: "နေ့စဉ်",
+      Monthly: "လအလိုက်",
+      Yearly: "နှစ်အလိုက်",
 
       // Settings
-      "Settings": "ဆက်တင်များ",
+      Settings: "ဆက်တင်များ",
       "App Preferences": "အက်ပ်အပြင်အဆင်များ",
-      "Language": "ဘာသာစကား",
-      "Account": "အကောင့်",
-      "Notifications": "အသိပေးချက်များ",
-      "About": "အကြောင်း",
+      Language: "ဘာသာစကား",
+      Account: "အကောင့်",
+      Notifications: "အသိပေးချက်များ",
+      About: "အကြောင်း",
       "Change Password": "စကားဝှက်ပြောင်းရန်",
       "Privacy Settings": "ကိုယ်ရေးအချက်အလက်ဆက်တင်များ",
       "Low Stock Alerts": "လက်ကျန်နည်းသောအသိပေးချက်များ",
       "Sales Notifications": "ရောင်းအားအသိပေးချက်များ",
-      "Version": "ဗားရှင်း",
+      Version: "ဗားရှင်း",
       "Terms & Conditions": "စည်းမျဉ်းနှင့်အခြေအနေများ",
       "Current Password": "လက်ရှိစကားဝှက်",
       "New Password": "စကားဝှက်အသစ်",
@@ -599,48 +650,61 @@ const resources = {
       "Confirm new password": "စကားဝှက်အသစ်အတည်ပြုပါ",
       "Password changed successfully": "စကားဝှက်ပြောင်းလဲခြင်းအောင်မြင်သည်",
       "Passwords do not match": "စကားဝှက်များမကိုက်ညီပါ",
-      "Password must be at least 6 characters": "စကားဝှက်သည် အနည်းဆုံး ၆ လုံးရှိရမည်",
+      "Password must be at least 6 characters":
+        "စကားဝှက်သည် အနည်းဆုံး ၆ လုံးရှိရမည်",
       "Current password is required": "လက်ရှိစကားဝှက်လိုအပ်သည်",
       "New password is required": "စကားဝှက်အသစ်လိုအပ်သည်",
       "Show Account Activity": "အကောင့်လှုပ်ရှားမှုပြပါ",
       "Data Collection": "ဒေတာစုဆောင်းမှု",
       "Share Usage Data": "အသုံးပြုမှုဒေတာမျှဝေပါ",
       "Enable Low Stock Alerts": "လက်ကျန်နည်းသောအသိပေးချက်များဖွင့်ပါ",
-      "Get notified when items are running low": "ပစ္စည်းများကုန်ခါနီးသောအခါအသိပေးပါ",
+      "Get notified when items are running low":
+        "ပစ္စည်းများကုန်ခါနီးသောအခါအသိပေးပါ",
       "Enable Sales Notifications": "အရောင်းအသိပေးချက်များဖွင့်ပါ",
       "Get notified about daily sales": "နေ့စဉ်အရောင်းများအကြောင်းအသိပေးပါ",
       "Notification Settings": "အသိပေးချက်ဆက်တင်များ",
       "Alert Time": "အသိပေးချိန်",
       "Set Alert Time": "အသိပေးချိန်သတ်မှတ်ပါ",
-      "Daily low stock notifications will be sent at this time": "ဤအချိန်တွင် နေ့စဉ်လက်ကျန်နည်းသောအသိပေးချက်များပို့ပါမည်",
+      "Daily low stock notifications will be sent at this time":
+        "ဤအချိန်တွင် နေ့စဉ်လက်ကျန်နည်းသောအသိပေးချက်များပို့ပါမည်",
       "rounded to nearest 10 minutes": "အနီးဆုံး 10 မိနစ်သို့ ပြောင်းလဲထားသည်",
       "Time Adjusted": "အချိန်ချိန်ညှိပြီး",
-      "Notification time has been rounded to the nearest 10-minute interval.": "အသိပေးချိန်ကို အနီးဆုံး 10 မိနစ်ကြားကာလသို့ ပြောင်းလဲထားသည်။",
-      "Hour": "နာရီ",
-      "Minute": "မိနစ်",
-      "Alert time updated successfully": "အသိပေးချိန်အောင်မြင်စွာပြောင်းလဲခဲ့သည်",
+      "Notification time has been rounded to the nearest 10-minute interval.":
+        "အသိပေးချိန်ကို အနီးဆုံး 10 မိနစ်ကြားကာလသို့ ပြောင်းလဲထားသည်။",
+      Hour: "နာရီ",
+      Minute: "မိနစ်",
+      "Alert time updated successfully":
+        "အသိပေးချိန်အောင်မြင်စွာပြောင်းလဲခဲ့သည်",
       "Hour must be between 0 and 23": "နာရီသည် 0 မှ 23 ကြားဖြစ်ရမည်",
       "Minute must be between 0 and 59": "မိနစ်သည် 0 မှ 59 ကြားဖြစ်ရမည်",
-      "Failed to update notification settings": "အသိပေးချက်ဆက်တင်များပြောင်းလဲ၍မရပါ",
+      "Failed to update notification settings":
+        "အသိပေးချက်ဆက်တင်များပြောင်းလဲ၍မရပါ",
       "Privacy Policy": "ကိုယ်ရေးအချက်အလက်မူဝါဒ",
       "About Hein Pharmacy": "ဟိန်းဆေးဆိုင်အကြောင်း",
-      "A comprehensive pharmacy management system": "ပြည့်စုံသောဆေးဆိုင်စီမံခန့်ခွဲမှုစနစ်",
+      "A comprehensive pharmacy management system":
+        "ပြည့်စုံသောဆေးဆိုင်စီမံခန့်ခွဲမှုစနစ်",
       "Contact Us": "ဆက်သွယ်ရန်",
       "Terms of Service": "ဝန်ဆောင်မှုစည်းမျဉ်းများ",
-      "Terms of Service Content": "ဤဟိန်းဆေးဆိုင်စီမံခန့်ခွဲမှုစနစ်သည် ဟိန်းဆေးဆိုင်အတွက်သာ အထူးတီထွင်ဖန်တီးထားသော ကိုယ်ပိုင်အပလီကေးရှင်းဖြစ်သည်။ ဝင်ရောက်ခွင့်ရှိသောဝန်ထမ်းများသာ အသုံးပြုနိုင်သည်။ ဤအပလီကေးရှင်းကို အသုံးပြုခြင်းဖြင့် လူနာအချက်အလက်အားလုံး၊ လုပ်ငန်းဒေတာများနှင့် ကိုယ်ပိုင်အချက်အလက်များ၏ လျှို့ဝှက်မှုကို ထိန်းသိမ်းထားရမည်ဟု သင်သဘောတူသည်။ ခွင့်ပြုချက်မရှိဘဲ အသုံးပြုခြင်း၊ ဖြန့်ဝေခြင်း သို့မဟုတ် အချက်အလက်ထုတ်ဖော်ခြင်းကို တားမြစ်ထားသည်။",
-      "Privacy Policy Content": "ဟိန်းဆေးဆိုင်သည် ကျွန်ုပ်တို့၏ဝယ်ယူသူများ၏ကိုယ်ရေးအချက်အလက်ကို ကာကွယ်ရန်နှင့် ကျန်းမာရေးနှင့်ဆိုင်သော အချက်အလက်အားလုံး၏ လျှို့ဝှက်မှုကို ထိန်းသိမ်းရန် ကတိပြုသည်။ ဒေတာအားလုံးကို ကျွန်ုပ်တို့၏ကိုယ်ပိုင်ဆာဗာများတွင် လုံခြုံစွာသိမ်းဆည်းထားပြီး အထူးခွင့်ပြုချက် သို့မဟုတ် ဥပဒေလိုအပ်ချက်မရှိဘဲ တတိယပါတီများနှင့် မျှဝေမည်မဟုတ်ပါ။ ကျွန်ုပ်တို့သည် သက်ဆိုင်ရာ ဒေတာကာကွယ်ရေးစည်းမျဉ်းများအားလုံးနှင့် လိုက်နာသည်။",
+      "Terms of Service Content":
+        "ဤဟိန်းဆေးဆိုင်စီမံခန့်ခွဲမှုစနစ်သည် ဟိန်းဆေးဆိုင်အတွက်သာ အထူးတီထွင်ဖန်တီးထားသော ကိုယ်ပိုင်အပလီကေးရှင်းဖြစ်သည်။ ဝင်ရောက်ခွင့်ရှိသောဝန်ထမ်းများသာ အသုံးပြုနိုင်သည်။ ဤအပလီကေးရှင်းကို အသုံးပြုခြင်းဖြင့် လူနာအချက်အလက်အားလုံး၊ လုပ်ငန်းဒေတာများနှင့် ကိုယ်ပိုင်အချက်အလက်များ၏ လျှို့ဝှက်မှုကို ထိန်းသိမ်းထားရမည်ဟု သင်သဘောတူသည်။ ခွင့်ပြုချက်မရှိဘဲ အသုံးပြုခြင်း၊ ဖြန့်ဝေခြင်း သို့မဟုတ် အချက်အလက်ထုတ်ဖော်ခြင်းကို တားမြစ်ထားသည်။",
+      "Privacy Policy Content":
+        "ဟိန်းဆေးဆိုင်သည် ကျွန်ုပ်တို့၏ဝယ်ယူသူများ၏ကိုယ်ရေးအချက်အလက်ကို ကာကွယ်ရန်နှင့် ကျန်းမာရေးနှင့်ဆိုင်သော အချက်အလက်အားလုံး၏ လျှို့ဝှက်မှုကို ထိန်းသိမ်းရန် ကတိပြုသည်။ ဒေတာအားလုံးကို ကျွန်ုပ်တို့၏ကိုယ်ပိုင်ဆာဗာများတွင် လုံခြုံစွာသိမ်းဆည်းထားပြီး အထူးခွင့်ပြုချက် သို့မဟုတ် ဥပဒေလိုအပ်ချက်မရှိဘဲ တတိယပါတီများနှင့် မျှဝေမည်မဟုတ်ပါ။ ကျွန်ုပ်တို့သည် သက်ဆိုင်ရာ ဒေတာကာကွယ်ရေးစည်းမျဉ်းများအားလုံးနှင့် လိုက်နာသည်။",
       "Data Security": "ဒေတာလုံခြုံရေး",
-      "Data Security Content": "လူနာဒေတာ၊ စာရင်းစီမံခန့်ခွဲမှုမှတ်တမ်းများနှင့် ငွေကြေးအချက်အလက်များအပါအဝင် အရေးကြီးသောအချက်အလက်အားလုံးကို စက်မှုလုပ်ငန်းစံနှုန်းအတိုင်း ကုဒ်ဖြင့်ပြောင်းလဲထားသည်။ ဝင်ရောက်ခွင့်ကို လုံခြုံသောစစ်မှန်ကြောင်းသက်သေပြခြင်းစနစ်များဖြင့် ကာကွယ်ထားသည်။ အသုံးပြုသူများသည် ၎င်းတို့၏လော့ဂ်အင်အထောက်အထားများ၏ လုံခြုံရေးကို ထိန်းသိမ်းရန် တာဝန်ရှိပြီး လုံခြုံရေးချိုးဖောက်မှုများ ဖြစ်နိုင်ခြေရှိပါက ချက်ချင်းအစီရင်ခံရမည်။",
-      "Support Contact": "နည်းပညာအကူအညီအတွက် သို့မဟုတ် မေးမြန်းချက်များအတွက် ဟိန်းဆေးဆိုင် IT အကူအညီအဖွဲ့ကို တိုက်ရိုက်ဆက်သွယ်ပါ။",
+      "Data Security Content":
+        "လူနာဒေတာ၊ စာရင်းစီမံခန့်ခွဲမှုမှတ်တမ်းများနှင့် ငွေကြေးအချက်အလက်များအပါအဝင် အရေးကြီးသောအချက်အလက်အားလုံးကို စက်မှုလုပ်ငန်းစံနှုန်းအတိုင်း ကုဒ်ဖြင့်ပြောင်းလဲထားသည်။ ဝင်ရောက်ခွင့်ကို လုံခြုံသောစစ်မှန်ကြောင်းသက်သေပြခြင်းစနစ်များဖြင့် ကာကွယ်ထားသည်။ အသုံးပြုသူများသည် ၎င်းတို့၏လော့ဂ်အင်အထောက်အထားများ၏ လုံခြုံရေးကို ထိန်းသိမ်းရန် တာဝန်ရှိပြီး လုံခြုံရေးချိုးဖောက်မှုများ ဖြစ်နိုင်ခြေရှိပါက ချက်ချင်းအစီရင်ခံရမည်။",
+      "Support Contact":
+        "နည်းပညာအကူအညီအတွက် သို့မဟုတ် မေးမြန်းချက်များအတွက် ဟိန်းဆေးဆိုင် IT အကူအညီအဖွဲ့ကို တိုက်ရိုက်ဆက်သွယ်ပါ။",
       "Last Updated": "နောက်ဆုံးအပ်ဒိတ်",
-      "Support": "အကူအညီ",
+      Support: "အကူအညီ",
       "Rate This App": "အက်ပ်အဆင့်သတ်မှတ်ပါ",
-      "Done": "ပြီးပါပြီ",
-      "Close": "ပိတ်မည်",
+      Done: "ပြီးပါပြီ",
+      Close: "ပိတ်မည်",
       "Failed to change password": "စကားဝှက်ပြောင်းခြင်းမအောင်မြင်ပါ",
       "Permissions Required": "ခွင့်ပြုချက်လိုအပ်သည်",
-      "Please enable notifications in your device settings to receive alerts.": "အသိပေးချက်များရရှိရန် သင့်စက်ပစ္စည်းဆက်တင်များတွင် အသိပေးချက်များကိုဖွင့်ပေးပါ။",
-      "Notification settings updated successfully": "အသိပေးချက်ဆက်တင်များအောင်မြင်စွာအပ်ဒိတ်လုပ်ပြီးပါပြီ",
+      "Please enable notifications in your device settings to receive alerts.":
+        "အသိပေးချက်များရရှိရန် သင့်စက်ပစ္စည်းဆက်တင်များတွင် အသိပေးချက်များကိုဖွင့်ပေးပါ။",
+      "Notification settings updated successfully":
+        "အသိပေးချက်ဆက်တင်များအောင်မြင်စွာအပ်ဒိတ်လုပ်ပြီးပါပြီ",
 
       // Profile
       "Manage your account settings": "သင့်အကောင့်ဆက်တင်များကိုစီမံပါ",
@@ -650,25 +714,32 @@ const resources = {
       "Create New Owner Account": "ပိုင်ရှင်အကောင့်အသစ်ဖန်တီးမည်",
       "Update Profile": "ပရိုဖိုင်အပ်ဒိတ်လုပ်မည်",
       "Create Owner": "ပိုင်ရှင်ဖန်တီးမည်",
-      "Address": "လိပ်စာ",
+      Address: "လိပ်စာ",
       "Enter your address": "သင့်လိပ်စာထည့်ပါ",
-      "Username, password, and full name are required": "အသုံးပြုသူအမည်၊ စကားဝှက်နှင့် အပြည့်အမည်လိုအပ်သည်",
-      "New owner account created successfully": "ပိုင်ရှင်အကောင့်အသစ်ဖန်တီးခြင်းအောင်မြင်သည်",
-      "Failed to create owner account": "ပိုင်ရှင်အကောင့်ဖန်တီးခြင်းမအောင်မြင်ပါ",
+      "Username, password, and full name are required":
+        "အသုံးပြုသူအမည်၊ စကားဝှက်နှင့် အပြည့်အမည်လိုအပ်သည်",
+      "New owner account created successfully":
+        "ပိုင်ရှင်အကောင့်အသစ်ဖန်တီးခြင်းအောင်မြင်သည်",
+      "Failed to create owner account":
+        "ပိုင်ရှင်အကောင့်ဖန်တီးခြင်းမအောင်မြင်ပါ",
       "Are you sure you want to logout?": "ထွက်ခွာလိုသည်မှာ သေချာပါသလား။",
       "Profile updated successfully": "ပရိုဖိုင်အပ်ဒိတ်လုပ်ခြင်းအောင်မြင်သည်",
       "Failed to update profile": "ပရိုဖိုင်အပ်ဒိတ်လုပ်ခြင်းမအောင်မြင်ပါ",
-      "English": "အင်္ဂလိပ်",
-      "Burmese": "မြန်မာ",
-      "Create a new owner account that can manage inventory and sales.": "စာရင်းနှင့် ရောင်းအားကို စီမံနိုင်သော ပိုင်ရှင်အကောင့်အသစ်ဖန်တီးပါ။",
-      "Manage all owner accounts in the system.": "စနစ်တွင်းရှိ ပိုင်ရှင်အကောင့်များအားလုံးကို စီမံပါ။",
+      English: "အင်္ဂလိပ်",
+      Burmese: "မြန်မာ",
+      "Create a new owner account that can manage inventory and sales.":
+        "စာရင်းနှင့် ရောင်းအားကို စီမံနိုင်သော ပိုင်ရှင်အကောင့်အသစ်ဖန်တီးပါ။",
+      "Manage all owner accounts in the system.":
+        "စနစ်တွင်းရှိ ပိုင်ရှင်အကောင့်များအားလုံးကို စီမံပါ။",
       "No owners found": "ပိုင်ရှင်များမတွေ့ပါ",
-      "Are you sure you want to delete this owner?": "ဤပိုင်ရှင်ကိုဖျက်လိုသည်မှာ သေချာပါသလား။",
+      "Are you sure you want to delete this owner?":
+        "ဤပိုင်ရှင်ကိုဖျက်လိုသည်မှာ သေချာပါသလား။",
       "Owner deleted successfully": "ပိုင်ရှင်ဖျက်ခြင်းအောင်မြင်သည်",
       "Failed to delete owner": "ပိုင်ရှင်ဖျက်ခြင်းမအောင်မြင်ပါ",
       "Delete Owner": "ပိုင်ရှင်ဖျက်မည်",
       "Edit Owner": "ပိုင်ရှင်ပြင်ဆင်မည်",
-      "Update owner account details.": "ပိုင်ရှင်အကောင့်အသေးစိတ်များကို အပ်ဒိတ်လုပ်ပါ။",
+      "Update owner account details.":
+        "ပိုင်ရှင်အကောင့်အသေးစိတ်များကို အပ်ဒိတ်လုပ်ပါ။",
       "Save Changes": "အပြောင်းအလဲများသိမ်းမည်",
       "Owner updated successfully": "ပိုင်ရှင်အပ်ဒိတ်လုပ်ခြင်းအောင်မြင်သည်",
       "Failed to update owner": "ပိုင်ရှင်အပ်ဒိတ်လုပ်ခြင်းမအောင်မြင်ပါ",
@@ -685,8 +756,8 @@ const resources = {
 
       // Print Layout Settings
       "Print Layout Settings": "ပုံနှိပ်အစီအစဉ်ဆက်တင်များ",
-      "Printing": "ပုံနှိပ်မှု",
-      "Presets": "ကြိုတင်သတ်မှတ်ချက်များ",
+      Printing: "ပုံနှိပ်မှု",
+      Presets: "ကြိုတင်သတ်မှတ်ချက်များ",
       "General Settings": "အထွေထွေဆက်တင်များ",
       "Paper Width (dots)": "စာရွက်အလျား (အစက်များ)",
       "Scale Factor": "အကျယ်အ width အချိုးကျ",
@@ -701,9 +772,9 @@ const resources = {
       "Column Widths (%)": "အတွဲ အလျား (%)",
       "Total: {{total}}%": "စုစုပေါင်း: {{total}}%",
       "Item Name": "ပစ္စည်းအမည်",
-      "Quantity": "အရေအတွက်",
-      "Price": "ဈေးနှုန်း",
-      "Margins": "အနားများ",
+      Quantity: "အရေအတွက်",
+      Price: "ဈေးနှုန်း",
+      Margins: "အနားများ",
       "Divider Vertical": "ဒေါင်လိုက်ခွဲခြားချက်",
       "Info Section": "အချက်အလက်အပိုင်းခွဲ",
       "Info Row": "အချက်အလက်အတန်းအစ",
@@ -713,8 +784,8 @@ const resources = {
       "Footer Top": "အောက်ခြေအပေါ်",
       "Footer Bottom": "အောက်ခြေအောက်",
       "Line Heights": "လိုင်းအမြင့်များ",
-      "Default": "ပုံမှန်",
-      "Footer": "အောက်ခြေ",
+      Default: "ပုံမှန်",
+      Footer: "အောက်ခြေ",
       "Divider Settings": "ခွဲခြားချက်ဆက်တင်များ",
       "Char Width Ratio": "စာလုံးအလျား အချိုးကျ",
       "Letter Spacing": "စာလုံးများကြားကွာဟချက်",
@@ -723,39 +794,50 @@ const resources = {
       "Import from Text": "စာသားမှတင်သွင်းမည်",
       "Reset All to Default": "အားလုံးကို ပုံမှန်သို့ပြန်လည်သတ်မှတ်မည်",
       "Import Configuration": "ဆက်တင်တင်သွင်းမည်",
-      "Paste the JSON configuration below:": "အောက်တွင် JSON ဆက်တင်များကိုကူးထည့်ပါ:",
+      "Paste the JSON configuration below:":
+        "အောက်တွင် JSON ဆက်တင်များကိုကူးထည့်ပါ:",
       "Export Configuration": "ဆက်တင်ထုတ်သည်",
-      "Copy the JSON configuration below:": "အောက်တွင် JSON ဆက်တင်များကိုကူးယူပါ:",
+      "Copy the JSON configuration below:":
+        "အောက်တွင် JSON ဆက်တင်များကိုကူးယူပါ:",
       "Reset to Default": "ပုံမှန်သို့ပြန်လည်သတ်မှတ်မည်",
-      "Are you sure you want to reset all print layout settings to default?": "ပုံနှိပ်အစီအစဉ်ဆက်တင်များအားလုံးကို ပုံမှန်သို့ပြန်လည်သတ်မှတ်လိုသည်မှာ သေချာပါသလား။",
+      "Are you sure you want to reset all print layout settings to default?":
+        "ပုံနှိပ်အစီအစဉ်ဆက်တင်များအားလုံးကို ပုံမှန်သို့ပြန်လည်သတ်မှတ်လိုသည်မှာ သေချာပါသလား။",
       "Apply Preset": "ကြိုတင်သတ်မှတ်ချက်အသုံးပြုမည်",
-      "This will replace all current settings with the {{preset}} preset.": "၎င်းသည် လက်ရှိဆက်တင်များအားလုံးကို {{preset}} ကြိုတင်သတ်မှတ်ချက်ဖြင့် အစားထိုးမည်ဖြစ်သည်။",
-      "Apply": "အသုံးပြုမည်",
-      "Reset": "ပြန်လည်သတ်မှတ်မည်",
-      "Print layout configuration imported successfully.": "ပုံနှိပ်အစီအစဉ်ဆက်တင်များကို အောင်မြင်စွာတင်သွင်းခဲ့သည်။",
-      "Failed to import configuration. Please check the format.": "ဆက်တင်များတင်သွင်းခြင်းမအောင်မြင်ပါ။ ပုံစံကိုအမှီအခိုကြည့်ပါ။",
+      "This will replace all current settings with the {{preset}} preset.":
+        "၎င်းသည် လက်ရှိဆက်တင်များအားလုံးကို {{preset}} ကြိုတင်သတ်မှတ်ချက်ဖြင့် အစားထိုးမည်ဖြစ်သည်။",
+      Apply: "အသုံးပြုမည်",
+      Reset: "ပြန်လည်သတ်မှတ်မည်",
+      "Print layout configuration imported successfully.":
+        "ပုံနှိပ်အစီအစဉ်ဆက်တင်များကို အောင်မြင်စွာတင်သွင်းခဲ့သည်။",
+      "Failed to import configuration. Please check the format.":
+        "ဆက်တင်များတင်သွင်းခြင်းမအောင်မြင်ပါ။ ပုံစံကိုအမှီအခိုကြည့်ပါ။",
+      "Unsaved Changes": "မသိမ်းထားသောပြောင်းလဲမှုများ",
+      "You have unsaved changes. Do you want to save before leaving?":
+        "မသိမ်းထားသောပြောင်းလဲမှုများရှိပါသည်။ ထွက်ရန်မတိုင်မီ သိမ်းဆည်းလိုပါသလား?",
+      "Don't Save": "မသိမ်းဘဲထွက်မည်",
+      "Failed to save": "သိမ်းဆည်းခြင်းမအောင်မြင်ပါ",
+      "Saving...": "သိမ်းဆည်းနေသည်...",
+      Saved: "သိမ်းပြီးပါပြီ",
 
       // Currency
-      "currency": "ကျပ်",
-      "currencySymbol": "ကျပ်"
-    }
-  }
+      currency: "ကျပ်",
+      currencySymbol: "ကျပ်",
+    },
+  },
 };
 
 // Initialize i18n with persisted language
 const initializeI18n = async () => {
   const initialLanguage = await getInitialLanguage();
-  
-  i18n
-    .use(initReactI18next)
-    .init({
-      resources,
-      lng: initialLanguage,
-      fallbackLng: 'en',
-      interpolation: {
-        escapeValue: false,
-      },
-    });
+
+  i18n.use(initReactI18next).init({
+    resources,
+    lng: initialLanguage,
+    fallbackLng: "en",
+    interpolation: {
+      escapeValue: false,
+    },
+  });
 };
 
 // Initialize immediately

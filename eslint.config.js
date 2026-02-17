@@ -1,15 +1,24 @@
-// https://docs.expo.dev/guides/using-eslint/
-const { defineConfig } = require('eslint/config');
-const expoConfig = require('eslint-config-expo/flat');
+import pluginJs from "@eslint/js";
+import pluginReact from "eslint-plugin-react";
+import globals from "globals";
 
-module.exports = defineConfig([
-  expoConfig,
+export default [
+  { ignores: ["node_modules/**", ".expo/**", "dist/**", "build/**"] },
+  { files: ["**/*.{js,mjs,cjs,jsx}"] },
+  { languageOptions: { globals: { ...globals.browser, ...globals.node } } },
+  pluginJs.configs.recommended,
+  pluginReact.configs.flat.recommended,
   {
-    ignores: ['dist/*'],
+    settings: {
+      react: {
+        version: "detect",
+      },
+    },
     rules: {
-      // Allow require() for platform-specific imports to avoid loading native modules on web
-      '@typescript-eslint/no-var-requires': 'off',
-      'import/no-commonjs': 'off',
+      "react/prop-types": "off",
+      "react/react-in-jsx-scope": "off",
+      "react/display-name": "warn",
+      "react/no-unescaped-entities": "warn",
     },
   },
-]);
+];

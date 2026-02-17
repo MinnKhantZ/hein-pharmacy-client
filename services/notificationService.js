@@ -102,22 +102,32 @@ class NotificationService {
   // Get notification settings from local storage
   async getNotificationSettings() {
     try {
-      const settings = await SecureStore.getItemAsync("notificationSettings");
-      if (settings) {
-        return JSON.parse(settings);
-      }
-      // Default settings
-      return {
+      const defaultSettings = {
         lowStockAlerts: true,
         salesNotifications: true,
-        lowStockAlertTime: "09:00", // Default 9:00 AM
+        lowStockAlertTime: "09:00",
+        expiryAlerts: true,
+        expiryAlertDaysBefore: 30,
+        expiryAlertTime: "09:00",
       };
+
+      const settings = await SecureStore.getItemAsync("notificationSettings");
+      if (settings) {
+        return {
+          ...defaultSettings,
+          ...JSON.parse(settings),
+        };
+      }
+      return defaultSettings;
     } catch (error) {
       console.error("Error getting notification settings:", error);
       return {
         lowStockAlerts: true,
         salesNotifications: true,
         lowStockAlertTime: "09:00",
+        expiryAlerts: true,
+        expiryAlertDaysBefore: 30,
+        expiryAlertTime: "09:00",
       };
     }
   }
@@ -191,6 +201,18 @@ class NotificationService {
         low_stock_alert_time: notificationSettings.lowStockAlertTime
           ? `${notificationSettings.lowStockAlertTime}:00`
           : "09:00:00",
+        expiry_alerts:
+          notificationSettings.expiryAlerts === undefined
+            ? true
+            : notificationSettings.expiryAlerts,
+        expiry_alert_days_before: Number.isFinite(
+          notificationSettings.expiryAlertDaysBefore,
+        )
+          ? Math.max(0, Math.floor(notificationSettings.expiryAlertDaysBefore))
+          : 30,
+        expiry_alert_time: notificationSettings.expiryAlertTime
+          ? `${notificationSettings.expiryAlertTime}:00`
+          : "09:00:00",
       };
 
       console.log("Registering device with server:", deviceInfo);
@@ -238,6 +260,18 @@ class NotificationService {
         sales_notifications: preferences.salesNotifications,
         low_stock_alert_time: preferences.lowStockAlertTime
           ? `${preferences.lowStockAlertTime}:00`
+          : undefined,
+        expiry_alerts:
+          preferences.expiryAlerts === undefined
+            ? undefined
+            : preferences.expiryAlerts,
+        expiry_alert_days_before: Number.isFinite(
+          preferences.expiryAlertDaysBefore,
+        )
+          ? Math.max(0, Math.floor(preferences.expiryAlertDaysBefore))
+          : undefined,
+        expiry_alert_time: preferences.expiryAlertTime
+          ? `${preferences.expiryAlertTime}:00`
           : undefined,
       };
 

@@ -18,6 +18,9 @@ export function NotificationProvider({ children }) {
     lowStockAlerts: true,
     salesNotifications: true,
     lowStockAlertTime: "09:00", // Default 9:00 AM
+    expiryAlerts: true,
+    expiryAlertDaysBefore: 30,
+    expiryAlertTime: "09:00",
   });
   const [permissionStatus, setPermissionStatus] = useState("undetermined");
   const isRefreshingRef = useRef(false);
@@ -116,6 +119,8 @@ export function NotificationProvider({ children }) {
     } else if (data.type === "daily_sales") {
       // Navigate to sales or income screen
       console.log("Daily sales notification tapped");
+    } else if (data.type === "expiry_window") {
+      console.log("Expiry window notification tapped");
     }
   }, []);
 

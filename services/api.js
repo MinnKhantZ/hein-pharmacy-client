@@ -98,6 +98,15 @@ export const salesAPI = {
   markAsPaid: (id) => api.patch(`/sales/${id}/mark-paid`),
 };
 
+// Unit Conversion API
+export const unitConversionAPI = {
+  getConversions: (params) => api.get("/unit-conversions", { params }),
+  createConversion: (data) => api.post("/unit-conversions", data),
+  updateConversion: (id, data) => api.put(`/unit-conversions/${id}`, data),
+  deleteConversion: (id) => api.delete(`/unit-conversions/${id}`),
+  syncQuantities: (id, data) => api.post(`/unit-conversions/${id}/sync`, data),
+};
+
 // Income API
 export const incomeAPI = {
   getSummary: (params) => api.get("/income/summary", { params }),

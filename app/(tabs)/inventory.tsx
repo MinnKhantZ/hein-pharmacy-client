@@ -24,7 +24,7 @@ import { AuthContext } from "../../contexts/AuthContext";
 import { useNotifications } from "../../contexts/NotificationContext";
 import { useThemeColor } from "../../hooks/use-theme-color";
 import { useDocumentTitle } from "../../hooks/useDocumentTitle";
-import { authAPI, inventoryAPI } from "../../services/api";
+import { authAPI, inventoryAPI, unitConversionAPI } from "../../services/api";
 import { formatPrice } from "../../utils/priceFormatter";
 import { useBreakpoint } from "../../utils/responsive";
 
@@ -41,6 +41,19 @@ interface InventoryItem {
   owner_name: string;
   owner_id: number;
   expiry_date?: string | null;
+}
+
+interface UnitConversion {
+  id: number;
+  base_item_id: number;
+  package_item_id: number;
+  conversion_rate: number;
+  base_item_name: string;
+  base_item_unit: string;
+  base_item_quantity: number;
+  package_item_name: string;
+  package_item_unit: string;
+  package_item_quantity: number;
 }
 
 interface Owner {
@@ -119,6 +132,23 @@ export default function InventoryScreen() {
     expiry_date: "",
     owner_id: "",
   });
+
+  // Unit conversion states
+  const [conversions, setConversions] = useState<UnitConversion[]>([]);
+  const [showAddConversion, setShowAddConversion] = useState(false);
+  const [conversionSearchQuery, setConversionSearchQuery] = useState("");
+  const [conversionSearchResults, setConversionSearchResults] = useState<
+    InventoryItem[]
+  >([]);
+  const [conversionSearchLoading, setConversionSearchLoading] = useState(false);
+  const [selectedConversionItem, setSelectedConversionItem] =
+    useState<InventoryItem | null>(null);
+  const [conversionRole, setConversionRole] = useState<"base" | "package">(
+    "base",
+  );
+  const [conversionRate, setConversionRate] = useState("");
+  const [savingConversion, setSavingConversion] = useState(false);
+  const [tempConversions, setTempConversions] = useState<any[]>([]);
 
   const formatDate = (dateString: string) => {
     if (!dateString) return "";
@@ -244,7 +274,7 @@ export default function InventoryScreen() {
         setLoadingItems(false);
       } catch (error) {
         console.error("Error fetching items:", error);
-        Alert.alert("Error", t("Failed to fetch inventory items"));
+        Alert.alert(t("Error"), t("Failed to fetch inventory items"));
         setRefreshing(false);
         setLoadingMore(false);
         setLoadingItems(false);
@@ -321,6 +351,9 @@ export default function InventoryScreen() {
       expiry_date: "",
       owner_id: "",
     });
+    setConversions([]);
+    setTempConversions([]);
+    resetConversionForm();
     setShowAddModal(true);
   };
 
@@ -331,14 +364,296 @@ export default function InventoryScreen() {
       description: item.description || "",
       category: item.category || "",
       unit: item.unit || "unit",
-      quantity: item.quantity.toString(),
+      quantity: Math.floor(Number(item.quantity)).toString(),
       unit_price: item.unit_price.toString(),
       selling_price: item.selling_price.toString(),
-      minimum_stock: item.minimum_stock.toString(),
+      minimum_stock: Math.floor(Number(item.minimum_stock)).toString(),
       expiry_date: item.expiry_date || "",
       owner_id: item.owner_id?.toString() || "",
     });
     setShowAddModal(true);
+    fetchConversions(item.id);
+  };
+
+  const fetchConversions = async (itemId: number) => {
+    try {
+      const response = await unitConversionAPI.getConversions({
+        item_id: itemId,
+      });
+      setConversions(response.data || []);
+    } catch (error) {
+      console.error("Error fetching conversions:", error);
+    }
+  };
+
+  const searchConversionItems = async (query: string) => {
+    if (!query.trim()) {
+      setConversionSearchResults([]);
+      return;
+    }
+    try {
+      setConversionSearchLoading(true);
+      const response = await inventoryAPI.getItems({
+        search: query,
+        limit: 10,
+      });
+      // Filter out the current item being edited
+      const filtered = (response.data.items || []).filter(
+        (item: InventoryItem) => item.id !== selectedItem?.id,
+      );
+      setConversionSearchResults(filtered);
+    } catch (error) {
+      console.error("Error searching items:", error);
+    } finally {
+      setConversionSearchLoading(false);
+    }
+  };
+
+  const resetConversionForm = () => {
+    setShowAddConversion(false);
+    setConversionSearchQuery("");
+    setConversionSearchResults([]);
+    setSelectedConversionItem(null);
+    setConversionRole("base");
+    setConversionRate("");
+  };
+
+  const handleSaveConversion = async () => {
+    if (!selectedConversionItem || !conversionRate) {
+      Alert.alert(t("Error"), t("Please fill in all fields"));
+      return;
+    }
+
+    const rate = parseFloat(conversionRate);
+    if (isNaN(rate) || rate <= 0) {
+      Alert.alert(t("Error"), t("Conversion rate must be a positive number"));
+      return;
+    }
+
+    const currentQty = selectedItem
+      ? Number(selectedItem.quantity)
+      : Number(formData.quantity || 0);
+    const otherQty = Number(selectedConversionItem.quantity);
+    const bothHaveStock = currentQty > 0 && otherQty > 0;
+
+    const calculateSyncedQty = (source: "new" | "linked") => {
+      if (source === "new") return currentQty.toString();
+
+      const rate = parseFloat(conversionRate);
+      if (conversionRole === "base") {
+        // Current item is base, other is package: base qty = package qty * rate
+        return Math.floor(otherQty * rate).toString();
+      } else {
+        // Current item is package, other is base: package qty = base qty / rate
+        return Math.floor(otherQty / rate).toString();
+      }
+    };
+
+    if (!selectedItem) {
+      // We are creating a new item, save conversion to temp state
+      if (bothHaveStock) {
+        Alert.alert(
+          t("Sync Quantities"),
+          t(
+            "Both items have existing stock. Which item's quantity should be used as the source to sync?",
+          ),
+          [
+            {
+              text: `${formData.name || t("New Item")} (${Math.floor(currentQty)} ${formData.unit || t("unit")})`,
+              onPress: () => {
+                setTempConversions([
+                  ...tempConversions,
+                  {
+                    id: Date.now().toString(),
+                    linkedItem: selectedConversionItem,
+                    role: conversionRole,
+                    rate: rate,
+                    syncSource: "new",
+                  },
+                ]);
+                resetConversionForm();
+              },
+            },
+            {
+              text: `${selectedConversionItem.name} (${Math.floor(otherQty)} ${selectedConversionItem.unit})`,
+              onPress: () => {
+                setFormData({
+                  ...formData,
+                  quantity: calculateSyncedQty("linked"),
+                });
+                setTempConversions([
+                  ...tempConversions,
+                  {
+                    id: Date.now().toString(),
+                    linkedItem: selectedConversionItem,
+                    role: conversionRole,
+                    rate: rate,
+                    syncSource: "linked",
+                  },
+                ]);
+                resetConversionForm();
+              },
+            },
+            {
+              text: t("Don't Sync"),
+              style: "cancel",
+              onPress: () => {
+                setTempConversions([
+                  ...tempConversions,
+                  {
+                    id: Date.now().toString(),
+                    linkedItem: selectedConversionItem,
+                    role: conversionRole,
+                    rate: rate,
+                    syncSource: "none",
+                  },
+                ]);
+                resetConversionForm();
+              },
+            },
+          ],
+        );
+      } else {
+        const syncSource =
+          currentQty > 0 ? "new" : otherQty > 0 ? "linked" : "none";
+
+        if (syncSource === "linked") {
+          setFormData({ ...formData, quantity: calculateSyncedQty("linked") });
+        }
+
+        setTempConversions([
+          ...tempConversions,
+          {
+            id: Date.now().toString(),
+            linkedItem: selectedConversionItem,
+            role: conversionRole,
+            rate: rate,
+            syncSource: syncSource,
+          },
+        ]);
+        resetConversionForm();
+      }
+      return;
+    }
+
+    // Determine base and package based on user choice
+    // conversionRole = what the CURRENT item (selectedItem) is
+    const baseItemId =
+      conversionRole === "base" ? selectedItem.id : selectedConversionItem.id;
+    const packageItemId =
+      conversionRole === "package"
+        ? selectedItem.id
+        : selectedConversionItem.id;
+
+    if (bothHaveStock) {
+      // Ask user which quantity to use for sync
+      Alert.alert(
+        t("Sync Quantities"),
+        t(
+          "Both items have existing stock. Which item's quantity should be used as the source to sync?",
+        ),
+        [
+          {
+            text: `${selectedItem.name} (${Math.floor(currentQty)} ${selectedItem.unit})`,
+            onPress: () =>
+              doSaveConversion(
+                baseItemId,
+                packageItemId,
+                rate,
+                selectedItem.id,
+              ),
+          },
+          {
+            text: `${selectedConversionItem.name} (${Math.floor(otherQty)} ${selectedConversionItem.unit})`,
+            onPress: () => {
+              setFormData({
+                ...formData,
+                quantity: calculateSyncedQty("linked"),
+              });
+              doSaveConversion(
+                baseItemId,
+                packageItemId,
+                rate,
+                selectedConversionItem.id,
+              );
+            },
+          },
+          {
+            text: t("Don't Sync"),
+            style: "cancel",
+            onPress: () =>
+              doSaveConversion(baseItemId, packageItemId, rate, undefined),
+          },
+        ],
+      );
+    } else {
+      // Only one or neither has stock, auto-sync from the one that has stock
+      const syncSource =
+        currentQty > 0
+          ? selectedItem.id
+          : otherQty > 0
+            ? selectedConversionItem.id
+            : undefined;
+
+      if (syncSource === selectedConversionItem.id) {
+        setFormData({ ...formData, quantity: calculateSyncedQty("linked") });
+      }
+
+      await doSaveConversion(baseItemId, packageItemId, rate, syncSource);
+    }
+  };
+
+  const doSaveConversion = async (
+    baseItemId: number,
+    packageItemId: number,
+    rate: number,
+    syncSourceItemId: number | undefined,
+  ) => {
+    try {
+      setSavingConversion(true);
+      await unitConversionAPI.createConversion({
+        base_item_id: baseItemId,
+        package_item_id: packageItemId,
+        conversion_rate: rate,
+        sync_source_item_id: syncSourceItemId,
+      });
+      Alert.alert(t("Success"), t("Unit conversion added successfully"));
+      resetConversionForm();
+      if (selectedItem) {
+        fetchConversions(selectedItem.id);
+        // Refresh items list since quantities may have changed
+        fetchItems(1, false);
+      }
+    } catch (error: any) {
+      Alert.alert(
+        t("Error"),
+        error.response?.data?.error || t("Failed to save conversion"),
+      );
+    } finally {
+      setSavingConversion(false);
+    }
+  };
+
+  const handleDeleteConversion = (conversion: UnitConversion) => {
+    Alert.alert(
+      t("Delete Conversion"),
+      `${t("Are you sure you want to remove the conversion between")} ${conversion.base_item_name} ${t("and")} ${conversion.package_item_name}?`,
+      [
+        { text: t("Cancel"), style: "cancel" },
+        {
+          text: t("Delete"),
+          style: "destructive",
+          onPress: async () => {
+            try {
+              await unitConversionAPI.deleteConversion(conversion.id);
+              if (selectedItem) fetchConversions(selectedItem.id);
+            } catch {
+              Alert.alert(t("Error"), t("Failed to delete conversion"));
+            }
+          },
+        },
+      ],
+    );
   };
 
   const handleSubmit = async () => {
@@ -348,12 +663,12 @@ export default function InventoryScreen() {
       !formData.unit_price ||
       !formData.selling_price
     ) {
-      Alert.alert("Error", t("Please fill in all required fields"));
+      Alert.alert(t("Error"), t("Please fill in all required fields"));
       return;
     }
 
     if (!formData.owner_id) {
-      Alert.alert("Error", t("Please select an owner"));
+      Alert.alert(t("Error"), t("Please select an owner"));
       return;
     }
 
@@ -376,10 +691,41 @@ export default function InventoryScreen() {
 
       if (selectedItem) {
         await inventoryAPI.updateItem(selectedItem.id, payload);
-        Alert.alert("Success", t("Item updated successfully"));
+        Alert.alert(t("Success"), t("Item updated successfully"));
       } else {
-        await inventoryAPI.createItem(payload);
-        Alert.alert("Success", t("Item added successfully"));
+        const response = await inventoryAPI.createItem(payload);
+        const newItemId = response.data.item.id;
+
+        // Create temp conversions
+        if (tempConversions.length > 0) {
+          for (const conv of tempConversions) {
+            const baseItemId =
+              conv.role === "base" ? newItemId : conv.linkedItem.id;
+            const packageItemId =
+              conv.role === "package" ? newItemId : conv.linkedItem.id;
+
+            let syncSourceItemId = undefined;
+            if (conv.syncSource === "new") {
+              syncSourceItemId = newItemId;
+            } else if (conv.syncSource === "linked") {
+              syncSourceItemId = conv.linkedItem.id;
+            }
+
+            try {
+              await unitConversionAPI.createConversion({
+                base_item_id: baseItemId,
+                package_item_id: packageItemId,
+                conversion_rate: conv.rate,
+                sync_source_item_id: syncSourceItemId,
+              });
+            } catch (convError) {
+              console.error("Error creating conversion:", convError);
+              // We don't stop the process, just log it
+            }
+          }
+        }
+
+        Alert.alert(t("Success"), t("Item added successfully"));
       }
 
       setSubmitting(false);
@@ -390,7 +736,7 @@ export default function InventoryScreen() {
     } catch (error: any) {
       setSubmitting(false);
       Alert.alert(
-        "Error",
+        t("Error"),
         error.response?.data?.error || t("Failed to save item"),
       );
     }
@@ -401,18 +747,18 @@ export default function InventoryScreen() {
       t("Delete Item"),
       `${t("Are you sure you want to delete")} ${item.name}?`,
       [
-        { text: "Cancel", style: "cancel" },
+        { text: t("Cancel"), style: "cancel" },
         {
-          text: "Delete",
+          text: t("Delete"),
           style: "destructive",
           onPress: async () => {
             try {
               await inventoryAPI.deleteItem(item.id);
-              Alert.alert("Success", t("Item deleted successfully"));
+              Alert.alert(t("Success"), t("Item deleted successfully"));
               setPage(1);
               fetchItems(1, false);
             } catch {
-              Alert.alert("Error", t("Failed to delete item"));
+              Alert.alert(t("Error"), t("Failed to delete item"));
             }
           },
         },
@@ -565,7 +911,7 @@ export default function InventoryScreen() {
                 <Text style={styles.itemDescription}>{item.description}</Text>
                 <View style={styles.itemDetails}>
                   <Text style={styles.detailText}>
-                    {t("Qty:")} {item.quantity} {item.unit}
+                    {t("Qty:")} {Math.floor(Number(item.quantity))} {item.unit}
                   </Text>
                   <Text style={styles.detailText}>
                     {t("Price:")} {formatPrice(item.selling_price)}
@@ -673,7 +1019,7 @@ export default function InventoryScreen() {
                 />
                 <TextInput
                   style={styles.input}
-                  placeholder={t("Unit (e.g., box, tablet) *")}
+                  placeholder={t("Unit *")}
                   value={formData.unit}
                   onChangeText={(text) =>
                     setFormData({ ...formData, unit: text })
@@ -745,9 +1091,287 @@ export default function InventoryScreen() {
                   >
                     {formData.expiry_date
                       ? formatDate(formData.expiry_date)
-                      : t("Expiry Date (YYYY-MM-DD)")}
+                      : t("Expiry Date")}
                   </Text>
                 </TouchableOpacity>
+
+                {/* Unit Conversions Section */}
+                <View style={ucStyles.sectionContainer}>
+                  <View style={ucStyles.sectionHeader}>
+                    <Text style={ucStyles.sectionTitle}>
+                      {t("Unit Conversions")}
+                    </Text>
+                  </View>
+
+                  <>
+                    {/* Existing conversions list */}
+                    {selectedItem && conversions.length > 0 ? (
+                      conversions.map((conv) => {
+                        const isCurrentBase =
+                          conv.base_item_id === selectedItem.id;
+                        return (
+                          <View key={conv.id} style={ucStyles.conversionCard}>
+                            <View style={ucStyles.conversionInfo}>
+                              <Text style={ucStyles.conversionText}>
+                                {conv.base_item_name} ({conv.base_item_unit})
+                              </Text>
+                              <Text style={ucStyles.conversionRate}>
+                                × {Number(conv.conversion_rate)} = 1
+                              </Text>
+                              <Text style={ucStyles.conversionText}>
+                                {conv.package_item_name} (
+                                {conv.package_item_unit})
+                              </Text>
+                              <Text style={ucStyles.conversionHint}>
+                                {isCurrentBase
+                                  ? t("This item is the base unit")
+                                  : t("This item is the package unit")}
+                              </Text>
+                            </View>
+                            <TouchableOpacity
+                              style={ucStyles.deleteConvBtn}
+                              onPress={() => handleDeleteConversion(conv)}
+                            >
+                              <Text style={ucStyles.deleteConvBtnText}>✕</Text>
+                            </TouchableOpacity>
+                          </View>
+                        );
+                      })
+                    ) : !selectedItem && tempConversions.length > 0 ? (
+                      tempConversions.map((conv) => {
+                        const isCurrentBase = conv.role === "base";
+                        return (
+                          <View key={conv.id} style={ucStyles.conversionCard}>
+                            <View style={ucStyles.conversionInfo}>
+                              <Text style={ucStyles.conversionText}>
+                                {isCurrentBase
+                                  ? formData.name || t("New Item")
+                                  : conv.linkedItem.name}{" "}
+                                (
+                                {isCurrentBase
+                                  ? formData.unit || "unit"
+                                  : conv.linkedItem.unit}
+                                )
+                              </Text>
+                              <Text style={ucStyles.conversionRate}>
+                                × {Number(conv.rate)} = 1
+                              </Text>
+                              <Text style={ucStyles.conversionText}>
+                                {!isCurrentBase
+                                  ? formData.name || t("New Item")
+                                  : conv.linkedItem.name}{" "}
+                                (
+                                {!isCurrentBase
+                                  ? formData.unit || "unit"
+                                  : conv.linkedItem.unit}
+                                )
+                              </Text>
+                              <Text style={ucStyles.conversionHint}>
+                                {isCurrentBase
+                                  ? t("This item is the base unit")
+                                  : t("This item is the package unit")}
+                              </Text>
+                            </View>
+                            <TouchableOpacity
+                              style={ucStyles.deleteConvBtn}
+                              onPress={() => {
+                                setTempConversions(
+                                  tempConversions.filter(
+                                    (c) => c.id !== conv.id,
+                                  ),
+                                );
+                              }}
+                            >
+                              <Text style={ucStyles.deleteConvBtnText}>✕</Text>
+                            </TouchableOpacity>
+                          </View>
+                        );
+                      })
+                    ) : (
+                      <Text style={ucStyles.infoText}>
+                        {t("No unit conversions yet.")}
+                      </Text>
+                    )}
+
+                    {/* Add conversion form */}
+                    {!showAddConversion ? (
+                      <TouchableOpacity
+                        style={ucStyles.addConvButton}
+                        onPress={() => setShowAddConversion(true)}
+                      >
+                        <Text style={ucStyles.addConvButtonText}>
+                          {t("+ Add Unit Conversion")}
+                        </Text>
+                      </TouchableOpacity>
+                    ) : (
+                      <View style={ucStyles.addConvForm}>
+                        <Text style={ucStyles.formLabel}>
+                          {t("Search for an item to link:")}
+                        </Text>
+                        <TextInput
+                          style={styles.input}
+                          placeholder={t("Search items...")}
+                          value={conversionSearchQuery}
+                          onChangeText={(text) => {
+                            setConversionSearchQuery(text);
+                            searchConversionItems(text);
+                          }}
+                          placeholderTextColor={placeholderTextColor}
+                        />
+
+                        {conversionSearchLoading && (
+                          <ActivityIndicator size="small" color="#2196F3" />
+                        )}
+
+                        {conversionSearchResults.length > 0 &&
+                          !selectedConversionItem && (
+                            <View style={ucStyles.searchResults}>
+                              {conversionSearchResults.map((item) => (
+                                <TouchableOpacity
+                                  key={item.id}
+                                  style={ucStyles.searchResultItem}
+                                  onPress={() => {
+                                    setSelectedConversionItem(item);
+                                    setConversionSearchResults([]);
+                                    setConversionSearchQuery(item.name);
+                                  }}
+                                >
+                                  <Text style={ucStyles.searchResultName}>
+                                    {item.name}
+                                  </Text>
+                                  <Text style={ucStyles.searchResultDetail}>
+                                    {item.unit} • {t("Stock:")}{" "}
+                                    {Math.floor(Number(item.quantity))}
+                                  </Text>
+                                </TouchableOpacity>
+                              ))}
+                            </View>
+                          )}
+
+                        {selectedConversionItem && (
+                          <>
+                            <View style={ucStyles.selectedItemBadge}>
+                              <Text style={ucStyles.selectedItemText}>
+                                {selectedConversionItem.name} (
+                                {selectedConversionItem.unit})
+                              </Text>
+                              <TouchableOpacity
+                                onPress={() => {
+                                  setSelectedConversionItem(null);
+                                  setConversionSearchQuery("");
+                                }}
+                              >
+                                <Text style={ucStyles.clearItemText}>✕</Text>
+                              </TouchableOpacity>
+                            </View>
+
+                            <Text style={ucStyles.formLabel}>
+                              {t("This item")} (
+                              {selectedItem
+                                ? selectedItem.name
+                                : formData.name || t("New Item")}
+                              ) {t("is the:")}
+                            </Text>
+                            <View style={ucStyles.roleToggle}>
+                              <TouchableOpacity
+                                style={[
+                                  ucStyles.roleButton,
+                                  conversionRole === "base" &&
+                                    ucStyles.roleButtonActive,
+                                ]}
+                                onPress={() => setConversionRole("base")}
+                              >
+                                <Text
+                                  style={[
+                                    ucStyles.roleButtonText,
+                                    conversionRole === "base" &&
+                                      ucStyles.roleButtonTextActive,
+                                  ]}
+                                >
+                                  {t("Base Unit")}
+                                </Text>
+                              </TouchableOpacity>
+                              <TouchableOpacity
+                                style={[
+                                  ucStyles.roleButton,
+                                  conversionRole === "package" &&
+                                    ucStyles.roleButtonActive,
+                                ]}
+                                onPress={() => setConversionRole("package")}
+                              >
+                                <Text
+                                  style={[
+                                    ucStyles.roleButtonText,
+                                    conversionRole === "package" &&
+                                      ucStyles.roleButtonTextActive,
+                                  ]}
+                                >
+                                  {t("Package Unit")}
+                                </Text>
+                              </TouchableOpacity>
+                            </View>
+
+                            <Text style={ucStyles.formLabel}>
+                              {conversionRole === "base"
+                                ? t("How many of this item fit in 1 package?")
+                                : t(
+                                    "How many base units in 1 of this package?",
+                                  )}
+                            </Text>
+                            <TextInput
+                              style={styles.input}
+                              placeholder={t("Enter rate")}
+                              value={conversionRate}
+                              onChangeText={setConversionRate}
+                              keyboardType="decimal-pad"
+                              placeholderTextColor={placeholderTextColor}
+                            />
+
+                            {conversionRate &&
+                              parseFloat(conversionRate) > 0 && (
+                                <Text style={ucStyles.previewText}>
+                                  {conversionRole === "base"
+                                    ? `${parseFloat(conversionRate)} ${selectedItem ? selectedItem.name : formData.name || t("New Item")} = 1 ${selectedConversionItem.name}`
+                                    : `1 ${selectedItem ? selectedItem.name : formData.name || t("New Item")} = ${parseFloat(conversionRate)} ${selectedConversionItem.name}`}
+                                </Text>
+                              )}
+
+                            <View style={ucStyles.convFormActions}>
+                              <TouchableOpacity
+                                style={ucStyles.convCancelBtn}
+                                onPress={resetConversionForm}
+                                disabled={savingConversion}
+                              >
+                                <Text style={ucStyles.convCancelBtnText}>
+                                  {t("Cancel")}
+                                </Text>
+                              </TouchableOpacity>
+                              <TouchableOpacity
+                                style={[
+                                  ucStyles.convSaveBtn,
+                                  savingConversion && { opacity: 0.6 },
+                                ]}
+                                onPress={handleSaveConversion}
+                                disabled={savingConversion}
+                              >
+                                {savingConversion ? (
+                                  <ActivityIndicator
+                                    color="white"
+                                    size="small"
+                                  />
+                                ) : (
+                                  <Text style={ucStyles.convSaveBtnText}>
+                                    {t("Save Conversion")}
+                                  </Text>
+                                )}
+                              </TouchableOpacity>
+                            </View>
+                          </>
+                        )}
+                      </View>
+                    )}
+                  </>
+                </View>
               </ScrollView>
 
               {showDatePicker && (
@@ -1134,5 +1758,213 @@ const styles = StyleSheet.create({
   },
   flatListContent: {
     paddingBottom: 20, // Base padding, additional padding added dynamically
+  },
+});
+
+const ucStyles = StyleSheet.create({
+  sectionContainer: {
+    marginTop: 20,
+    borderTopWidth: 1,
+    borderTopColor: "#e0e0e0",
+    paddingTop: 15,
+  },
+  sectionHeader: {
+    marginBottom: 10,
+  },
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: "bold",
+    color: "#333",
+  },
+  infoText: {
+    fontSize: 14,
+    color: "#999",
+    fontStyle: "italic",
+    marginBottom: 10,
+  },
+  conversionCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#f0f7ff",
+    borderRadius: 8,
+    padding: 12,
+    marginBottom: 8,
+    borderWidth: 1,
+    borderColor: "#d0e4ff",
+  },
+  conversionInfo: {
+    flex: 1,
+  },
+  conversionText: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: "#333",
+  },
+  conversionRate: {
+    fontSize: 13,
+    color: "#2196F3",
+    fontWeight: "bold",
+    marginVertical: 2,
+  },
+  conversionHint: {
+    fontSize: 12,
+    color: "#888",
+    marginTop: 2,
+  },
+  deleteConvBtn: {
+    backgroundColor: "#f44336",
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    alignItems: "center",
+    justifyContent: "center",
+    marginLeft: 8,
+  },
+  deleteConvBtnText: {
+    color: "white",
+    fontWeight: "bold",
+    fontSize: 14,
+  },
+  addConvButton: {
+    backgroundColor: "#e3f2fd",
+    padding: 12,
+    borderRadius: 8,
+    alignItems: "center",
+    borderWidth: 1,
+    borderColor: "#90caf9",
+    borderStyle: "dashed",
+  },
+  addConvButtonText: {
+    color: "#1976D2",
+    fontWeight: "600",
+    fontSize: 14,
+  },
+  addConvForm: {
+    backgroundColor: "#fafafa",
+    borderRadius: 8,
+    padding: 12,
+    borderWidth: 1,
+    borderColor: "#e0e0e0",
+  },
+  formLabel: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: "#555",
+    marginBottom: 6,
+    marginTop: 8,
+  },
+  searchResults: {
+    backgroundColor: "white",
+    borderWidth: 1,
+    borderColor: "#ddd",
+    borderRadius: 8,
+    maxHeight: 150,
+    marginBottom: 8,
+  },
+  searchResultItem: {
+    padding: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: "#f0f0f0",
+  },
+  searchResultName: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: "#333",
+  },
+  searchResultDetail: {
+    fontSize: 12,
+    color: "#888",
+    marginTop: 2,
+  },
+  selectedItemBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#e8f5e9",
+    borderRadius: 6,
+    padding: 10,
+    marginBottom: 8,
+    borderWidth: 1,
+    borderColor: "#a5d6a7",
+  },
+  selectedItemText: {
+    flex: 1,
+    fontSize: 14,
+    fontWeight: "600",
+    color: "#2e7d32",
+  },
+  clearItemText: {
+    fontSize: 16,
+    color: "#c62828",
+    fontWeight: "bold",
+    paddingHorizontal: 6,
+  },
+  roleToggle: {
+    flexDirection: "row",
+    gap: 8,
+    marginBottom: 10,
+  },
+  roleButton: {
+    flex: 1,
+    backgroundColor: "#f5f5f5",
+    borderRadius: 8,
+    padding: 12,
+    alignItems: "center",
+    borderWidth: 2,
+    borderColor: "#e0e0e0",
+  },
+  roleButtonActive: {
+    backgroundColor: "#e3f2fd",
+    borderColor: "#2196F3",
+  },
+  roleButtonText: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: "#666",
+  },
+  roleButtonTextActive: {
+    color: "#1976D2",
+  },
+  roleHint: {
+    fontSize: 11,
+    color: "#999",
+    marginTop: 2,
+  },
+  previewText: {
+    fontSize: 14,
+    color: "#4CAF50",
+    fontWeight: "600",
+    textAlign: "center",
+    backgroundColor: "#f1f8e9",
+    padding: 10,
+    borderRadius: 6,
+    marginBottom: 10,
+  },
+  convFormActions: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginTop: 10,
+    gap: 8,
+  },
+  convCancelBtn: {
+    flex: 1,
+    padding: 12,
+    borderRadius: 8,
+    alignItems: "center",
+    backgroundColor: "#f5f5f5",
+  },
+  convCancelBtnText: {
+    color: "#333",
+    fontWeight: "600",
+  },
+  convSaveBtn: {
+    flex: 1,
+    padding: 12,
+    borderRadius: 8,
+    alignItems: "center",
+    backgroundColor: "#4CAF50",
+  },
+  convSaveBtnText: {
+    color: "white",
+    fontWeight: "600",
   },
 });

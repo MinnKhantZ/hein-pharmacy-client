@@ -145,6 +145,42 @@ const resources = {
       "Select existing category": "Select existing category",
       "All Owners": "All Owners",
       "All Categories": "All Categories",
+      "Expiry Date": "Expiry Date",
+      "Unit *": "Unit *",
+
+      // Unit Conversions
+      "Unit Conversions": "Unit Conversions",
+      "This item is the base unit": "This item is the base unit",
+      "This item is the package unit": "This item is the package unit",
+      "New Item": "New Item",
+      "No unit conversions yet.": "No unit conversions yet.",
+      "+ Add Unit Conversion": "+ Add Unit Conversion",
+      "Search for an item to link:": "Search for an item to link:",
+      "Stock:": "Stock:",
+      "This item": "This item",
+      "is the:": "is the:",
+      "Base Unit": "Base Unit",
+      "Package Unit": "Package Unit",
+      "How many of this item fit in 1 package?":
+        "How many of this item fit in 1 package?",
+      "How many base units in 1 of this package?":
+        "How many base units in 1 of this package?",
+      "Enter rate": "Enter rate",
+      "Save Conversion": "Save Conversion",
+      "Sync Quantities": "Sync Quantities",
+      "Both items have existing stock. Which item's quantity should be used as the source to sync?":
+        "Both items have existing stock. Which item's quantity should be used as the source to sync?",
+      "Don't Sync": "Don't Sync",
+      "Delete Conversion": "Delete Conversion",
+      "Are you sure you want to remove the conversion between":
+        "Are you sure you want to remove the conversion between",
+      and: "and",
+      "Failed to save conversion": "Failed to save conversion",
+      "Unit conversion added successfully":
+        "Unit conversion added successfully",
+      "Failed to delete conversion": "Failed to delete conversion",
+      "Conversion rate must be a positive number":
+        "Conversion rate must be a positive number",
 
       // Sales
       "Item updated successfully": "Item updated successfully",
@@ -384,9 +420,6 @@ const resources = {
       "Total Amount": "Total Amount",
       "Column Widths (%)": "Column Widths (%)",
       "Total: {{total}}%": "Total: {{total}}%",
-      "Item Name": "Item Name",
-      Quantity: "Quantity",
-      Price: "Price",
       Margins: "Margins",
       "Divider Vertical": "Divider Vertical",
       "Info Section": "Info Section",
@@ -568,6 +601,42 @@ const resources = {
       "Select existing category": "ရှိပြီးသားအမျိုးအစားရွေးချယ်ပါ",
       "All Owners": "ပိုင်ရှင်အားလုံး",
       "All Categories": "အမျိုးအစားအားလုံး",
+      "Expiry Date": "သက်တမ်းကုန်ရက်",
+      "Unit *": "ယူနစ် *",
+
+      // Unit Conversions
+      "Unit Conversions": "ယူနစ်ပြောင်းလဲခြင်း",
+      "This item is the base unit": "ဤပစ္စည်းသည် အခြေခံယူနစ်ဖြစ်သည်",
+      "This item is the package unit": "ဤပစ္စည်းသည် အထုပ်လိုက်ယူနစ်ဖြစ်သည်",
+      "New Item": "ပစ္စည်းအသစ်",
+      "No unit conversions yet.": "ယူနစ်ပြောင်းလဲခြင်းများ မရှိသေးပါ",
+      "+ Add Unit Conversion": "+ ယူနစ်ပြောင်းလဲခြင်းထည့်မည်",
+      "Search for an item to link:": "ချိတ်ဆက်ရန် ပစ္စည်းရှာဖွေပါ:",
+      "Stock:": "လက်ကျန်:",
+      "This item": "ဤပစ္စည်း",
+      "is the:": "သည်:",
+      "Base Unit": "အခြေခံယူနစ်",
+      "Package Unit": "အထုပ်လိုက်ယူနစ်",
+      "How many of this item fit in 1 package?":
+        "ဤပစ္စည်းမည်မျှသည် ၁ ထုပ်တွင် ပါဝင်ပါသနည်း?",
+      "How many base units in 1 of this package?":
+        "ဤ ၁ ထုပ်တွင် အခြေခံယူနစ်မည်မျှ ပါဝင်ပါသနည်း?",
+      "Enter rate": "နှုန်းထားရိုက်ထည့်ပါ",
+      "Save Conversion": "ပြောင်းလဲခြင်းကို သိမ်းဆည်းမည်",
+      "Sync Quantities": "အရေအတွက်များ ညှိရန်",
+      "Both items have existing stock. Which item's quantity should be used as the source to sync?":
+        "ပစ္စည်းနှစ်ခုလုံးတွင် လက်ကျန်ရှိနေပါသည်။ မည်သည့်ပစ္စည်း၏ အရေအတွက်ကို မူလအဖြစ် အသုံးပြု၍ ညှိရပါမလဲ?",
+      "Don't Sync": "မညှိပါ",
+      "Delete Conversion": "ပြောင်းလဲခြင်းကို ဖျက်မည်",
+      "Are you sure you want to remove the conversion between":
+        "အကြား ပြောင်းလဲခြင်းကို ဖျက်လိုသည်မှာ သေချာပါသလား",
+      and: "နှင့်",
+      "Failed to save conversion": "ပြောင်းလဲခြင်းသိမ်းဆည်းရန် မအောင်မြင်ပါ",
+      "Unit conversion added successfully":
+        "ယူနစ်ပြောင်းလဲခြင်း အောင်မြင်စွာ ထည့်သွင်းပြီးပါပြီ",
+      "Failed to delete conversion": "ပြောင်းလဲခြင်းဖျက်ရန် မအောင်မြင်ပါ",
+      "Conversion rate must be a positive number":
+        "ပြောင်းလဲခြင်းနှုန်းထားသည် ပိုကိန်းဖြစ်ရမည်",
 
       // Sales
       "Item updated successfully": "ပစ္စည်းပြင်ဆင်ခြင်းအောင်မြင်သည်",
@@ -799,9 +868,6 @@ const resources = {
       "Total Amount": "စုစုပေါင်းပမာဏ",
       "Column Widths (%)": "အတွဲ အလျား (%)",
       "Total: {{total}}%": "စုစုပေါင်း: {{total}}%",
-      "Item Name": "ပစ္စည်းအမည်",
-      Quantity: "အရေအတွက်",
-      Price: "ဈေးနှုန်း",
       Margins: "အနားများ",
       "Divider Vertical": "ဒေါင်လိုက်ခွဲခြားချက်",
       "Info Section": "အချက်အလက်အပိုင်းခွဲ",

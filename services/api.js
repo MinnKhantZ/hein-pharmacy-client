@@ -117,6 +117,17 @@ export const incomeAPI = {
   getOverallStats: (params) => api.get("/income/stats", { params }),
 };
 
+// Invoice API
+export const invoiceAPI = {
+  getInvoices: (params) => api.get("/invoices", { params }),
+  getInvoice: (id) => api.get(`/invoices/${id}`),
+  updateInvoice: (id, data) => api.put(`/invoices/${id}`, data),
+  deleteInvoice: (id) => api.delete(`/invoices/${id}`),
+  getUploadSignedUrl: (payload) =>
+    api.post("/invoices/upload-signed-url", payload),
+  createInvoice: (invoiceData) => api.post("/invoices", invoiceData),
+};
+
 // Device API
 export const deviceAPI = {
   registerDevice: (deviceData, config) =>

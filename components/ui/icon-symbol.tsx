@@ -1,11 +1,14 @@
 // Fallback for using Ionicons on all platforms for better icon support.
 
-import Ionicons from '@expo/vector-icons/Ionicons';
-import { SymbolViewProps, SymbolWeight } from 'expo-symbols';
-import { ComponentProps } from 'react';
-import { OpaqueColorValue, type StyleProp, type TextStyle } from 'react-native';
+import Ionicons from "@expo/vector-icons/Ionicons";
+import { SymbolViewProps, SymbolWeight } from "expo-symbols";
+import { ComponentProps } from "react";
+import { OpaqueColorValue, type StyleProp, type TextStyle } from "react-native";
 
-type IconMapping = Record<SymbolViewProps['name'], ComponentProps<typeof Ionicons>['name']>;
+type IconMapping = Record<
+  SymbolViewProps["name"],
+  ComponentProps<typeof Ionicons>["name"]
+>;
 export type IconSymbolName = keyof typeof MAPPING;
 
 /**
@@ -14,14 +17,15 @@ export type IconSymbolName = keyof typeof MAPPING;
  * - see SF Symbols in the [SF Symbols](https://developer.apple.com/sf-symbols/) app.
  */
 const MAPPING = {
-  'house.fill': 'home',
-  'pills.fill': 'medical',
-  'creditcard.fill': 'card',
-  'chart.pie.fill': 'pie-chart',
-  'person.circle.fill': 'person-circle',
-  'paperplane.fill': 'paper-plane',
-  'chevron.left.forwardslash.chevron.right': 'code-slash',
-  'chevron.right': 'chevron-forward',
+  "house.fill": "home",
+  "pills.fill": "medical",
+  "creditcard.fill": "card",
+  "doc.text.fill": "document-text",
+  "chart.pie.fill": "pie-chart",
+  "person.circle.fill": "person-circle",
+  "paperplane.fill": "paper-plane",
+  "chevron.left.forwardslash.chevron.right": "code-slash",
+  "chevron.right": "chevron-forward",
 } as IconMapping;
 
 /**
@@ -40,5 +44,7 @@ export function IconSymbol({
   style?: StyleProp<TextStyle>;
   weight?: SymbolWeight;
 }) {
-  return <Ionicons color={color} size={size} name={MAPPING[name]} style={style} />;
+  return (
+    <Ionicons color={color} size={size} name={MAPPING[name]} style={style} />
+  );
 }

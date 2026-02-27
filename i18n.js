@@ -197,6 +197,46 @@ const resources = {
       "Income Reports": "Income Reports",
       "View income analytics": "View income analytics",
 
+      // Invoices
+      Invoices: "Invoices",
+      "Add Invoice": "Add Invoice",
+      "Upload supplier invoice": "Upload supplier invoice",
+      "Search by invoice ID or company": "Search by invoice ID or company",
+      "No invoices yet": "No invoices yet",
+      "Tap Add Invoice to upload your first supplier invoice":
+        "Tap Add Invoice to upload your first supplier invoice",
+      "Only admin can access invoice records":
+        "Only admin can access invoice records",
+      "Edit Invoice": "Edit Invoice",
+      "Invoice ID": "Invoice ID",
+      "Company Name": "Company Name",
+      "Invoice Date": "Invoice Date",
+      "Invoice Image": "Invoice Image",
+      "Enter invoice ID": "Enter invoice ID",
+      "Enter supplier company": "Enter supplier company",
+      "Pick Image": "Pick Image",
+      "Change Image": "Change Image",
+      "Current image (tap to change)": "Current image (tap to change)",
+      "Save Invoice": "Save Invoice",
+      "Update Invoice": "Update Invoice",
+      "Delete Invoice": "Delete Invoice",
+      "Are you sure you want to delete this invoice? This cannot be undone.":
+        "Are you sure you want to delete this invoice? This cannot be undone.",
+      "Failed to fetch invoices": "Failed to fetch invoices",
+      "Failed to delete invoice": "Failed to delete invoice",
+      "Failed to get upload URL": "Failed to get upload URL",
+      "Failed to download invoice image": "Failed to download invoice image",
+      "Failed to create invoice record": "Failed to create invoice record",
+      "Failed to update invoice record": "Failed to update invoice record",
+      "Invoice record created successfully":
+        "Invoice record created successfully",
+      "Invoice record updated successfully":
+        "Invoice record updated successfully",
+      "Please fill invoice ID, company name, payment, and date":
+        "Please fill invoice ID, company name, payment, and date",
+      "Please select an invoice image": "Please select an invoice image",
+      "Download Invoice": "Download Invoice",
+
       // Sales
       "New Sale": "New Sale",
       "Customer Name": "Customer Name",
@@ -542,6 +582,50 @@ const resources = {
       "Manage your inventory": "သင့်စာရင်းကိုစီမံမည်",
       "Income Reports": "ဝင်ငွေအစီရင်ခံစာများ",
       "View income analytics": "ဝင်ငွေစာရင်းအင်းကြည့်မည်",
+
+      // Invoices
+      Invoices: "ဘောင်ချာ",
+      "Add Invoice": "ဘောင်ချာထည့်မည်",
+      "Upload supplier invoice": "ကုန်သွင်းသူ ဘောင်ချာတင်မည်",
+      "Search by invoice ID or company":
+        "ဘောင်ချာ IDs သို့မဟုတ် ကုမ္ပဏီဖြင့်ရှာမည်",
+      "No invoices yet": "ဘောင်ချာများ မရှိသေးပါ",
+      "Tap Add Invoice to upload your first supplier invoice":
+        "ဘောင်ချာထည့်မည် ကိုနှိပ်၍ သင့်၏ ပထမဆုံး ဘောင်ချာကို တင်ပါ",
+      "Only admin can access invoice records":
+        "အက်ဒမင်သာလျှင် ဘောင်ချာမှတ်တမ်းများကို ကြည့်ရှုနိုင်သည်",
+      "Edit Invoice": "ဘောင်ချာပြင်ဆင်မည်",
+      "Invoice ID": "ဘောင်ချာ ID",
+      "Company Name": "ကုမ္ပဏီအမည်",
+      "Invoice Date": "ဘောင်ချာရက်စွဲ",
+      "Invoice Image": "ဘောင်ချာပုံ",
+      "Enter invoice ID": "ဘောင်ချာ ID ရိုက်ထည့်ပါ",
+      "Enter supplier company": "ကုန်သွင်းသူကုမ္ပဏီ ရိုက်ထည့်ပါ",
+      "Pick Image": "ပုံရွေးချယ်မည်",
+      "Change Image": "ပုံပြောင်းမည်",
+      "Current image (tap to change)": "လက်ရှိပုံ (ပြောင်းလဲရန် နှိပ်ပါ)",
+      "Save Invoice": "ဘောင်ချာသိမ်းမည်",
+      "Update Invoice": "ဘောင်ချာပြင်ဆင်မည်",
+      "Delete Invoice": "ဘောင်ချာဖျက်မည်",
+      "Are you sure you want to delete this invoice? This cannot be undone.":
+        "ဤဘောင်ချာကို ဖျက်လိုသည်မှာ သေချာပါသလား? ၎င်းကို ပြန်လည်ရယူ၍ မရနိုင်ပါ။",
+      "Failed to fetch invoices": "ဘောင်ချာများ ရယူခြင်း မအောင်မြင်ပါ",
+      "Failed to delete invoice": "ဘောင်ချာဖျက်ခြင်း မအောင်မြင်ပါ",
+      "Failed to get upload URL": "တင်ရန် လင့်ခ်ရယူခြင်း မအောင်မြင်ပါ",
+      "Failed to download invoice image":
+        "ဘောင်ချာပုံ ဒေါင်းလုဒ်လုပ်ခြင်း မအောင်မြင်ပါ",
+      "Failed to create invoice record":
+        "ဘောင်ချာမှတ်တမ်း ဖန်တီးခြင်း မအောင်မြင်ပါ",
+      "Failed to update invoice record":
+        "ဘောင်ချာမှတ်တမ်း ပြင်ဆင်ခြင်း မအောင်မြင်ပါ",
+      "Invoice record created successfully":
+        "ဘောင်ချာမှတ်တမ်း ဖန်တီးမှု အောင်မြင်သည်",
+      "Invoice record updated successfully":
+        "ဘောင်ချာမှတ်တမ်း ပြင်ဆင်မှု အောင်မြင်သည်",
+      "Please fill invoice ID, company name, payment, and date":
+        "ဘောင်ချာ ID၊ ကုမ္ပဏီအမည်၊ ငွေပေးချေမှု နှင့် ရက်စွဲတို့ကို ဖြည့်စွက်ပါ",
+      "Please select an invoice image": "ဘောင်ချာပုံ ရွေးချယ်ပါ",
+      "Download Invoice": "ဘောင်ချာဒေါင်းလုဒ်လုပ်မည်",
 
       // Inventory
       "Add New Item": "ပစ္စည်းအသစ်ထည့်မည်",

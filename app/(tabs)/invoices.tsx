@@ -6,27 +6,27 @@ import * as Sharing from "expo-sharing";
 import React, { useContext, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
-  ActivityIndicator,
-  Alert,
-  FlatList,
-  Image,
-  KeyboardAvoidingView,
-  Linking,
-  Modal,
-  Platform,
-  RefreshControl,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View,
+    ActivityIndicator,
+    Alert,
+    FlatList,
+    Image,
+    KeyboardAvoidingView,
+    Linking,
+    Modal,
+    Platform,
+    RefreshControl,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TextInput,
+    TouchableOpacity,
+    View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { AuthContext } from "../../contexts/AuthContext";
 import { useThemeColor } from "../../hooks/use-theme-color";
 import { useDocumentTitle } from "../../hooks/useDocumentTitle";
-import { invoiceAPI } from "../../services/api";
+import { API_BASE_URL, invoiceAPI } from "../../services/api";
 import { uploadFile } from "../../utils/uploadFile";
 
 interface InvoiceRecord {
@@ -285,10 +285,16 @@ export default function InvoicesScreen() {
           content_type: selectedImage.type,
         });
 
-        const { signedUrl, imageUrl } = signedUrlResponse.data || {};
+        const { signedUrl, imageUrl, useServerProxy } =
+          signedUrlResponse.data || {};
 
         if (!signedUrl || !imageUrl) {
           throw new Error(t("Failed to get upload URL"));
+        }
+
+        // For server proxy mode, the signedUrl is a relative path — prepend API base
+        if (useServerProxy && signedUrlResponse.data) {
+          signedUrlResponse.data.signedUrl = `${API_BASE_URL.replace(/\/api$/, "")}${signedUrl}`;
         }
 
         let uploadBody: Blob | File;
@@ -344,7 +350,11 @@ export default function InvoicesScreen() {
       Alert.alert(
         t("Error"),
         error?.response?.data?.error ||
-          t(isEditing ? "Failed to update invoice record" : "Failed to create invoice record"),
+          t(
+            isEditing
+              ? "Failed to update invoice record"
+              : "Failed to create invoice record",
+          ),
       );
     } finally {
       setSubmitting(false);
@@ -434,7 +444,12 @@ export default function InvoicesScreen() {
       </View>
 
       <View style={styles.searchContainer}>
-        <MaterialIcons name="search" size={20} color="#999" style={styles.searchIcon} />
+        <MaterialIcons
+          name="search"
+          size={20}
+          color="#999"
+          style={styles.searchIcon}
+        />
         <TextInput
           style={styles.searchInput}
           value={searchQuery}
@@ -496,7 +511,11 @@ export default function InvoicesScreen() {
                     style={[styles.actionIconButton, styles.deleteIconButton]}
                     onPress={() => handleDelete(item)}
                   >
-                    <MaterialIcons name="delete-outline" size={18} color="#C62828" />
+                    <MaterialIcons
+                      name="delete-outline"
+                      size={18}
+                      color="#C62828"
+                    />
                   </TouchableOpacity>
                 </View>
               </View>

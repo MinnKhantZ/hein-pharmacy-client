@@ -90,6 +90,7 @@ export interface SignedUrlResponse {
   imageUrl?: string; // Other APIs use imageUrl
   uploadToken?: string;
   useWorkerProxy?: boolean;
+  useServerProxy?: boolean;
   multipart?: {
     initUrl: string;
     chunkUrl: string;
@@ -126,7 +127,7 @@ export async function uploadFile(
     signedUrlResponse,
     contentType,
   });
-  const { signedUrl, uploadToken, useWorkerProxy, multipart } =
+  const { signedUrl, uploadToken, useWorkerProxy, useServerProxy, multipart } =
     signedUrlResponse;
 
   // Use downloadUrl if present, otherwise fallback to imageUrl
@@ -136,6 +137,18 @@ export async function uploadFile(
   if (!signedUrl) {
     console.log("uploadFile missing signedUrl");
     throw new Error("signedUrl is required");
+  }
+
+  // --- Server proxy mode: upload through our own backend ---
+  if (useServerProxy && uploadToken) {
+    return uploadServerProxy(
+      fileBlob,
+      signedUrl,
+      uploadToken,
+      downloadUrl,
+      contentType,
+      onProgress,
+    );
   }
 
   const looksLikeWorkerUploadEndpoint =
@@ -571,6 +584,73 @@ export function uploadWithProgress(
 
     xhr.send(fileBlob);
   });
+}
+
+/**
+ * Upload via server proxy — the backend streams the file to R2.
+ * Used when the client can only reach the server domain (ISP DPI blocks R2/worker).
+ */
+async function uploadServerProxy(
+  fileBlob: Blob,
+  uploadUrl: string,
+  uploadToken: string,
+  downloadUrl?: string,
+  contentType?: string,
+  onProgress?: (event: ProgressEvent) => void,
+): Promise<string> {
+  console.log("uploadServerProxy start", {
+    uploadUrl,
+    downloadUrl,
+    contentType,
+    size: fileBlob?.size,
+  });
+
+  if (onProgress) {
+    try {
+      const result = await uploadWithProgress(
+        uploadUrl,
+        fileBlob,
+        contentType || "application/octet-stream",
+        uploadToken,
+        onProgress,
+      );
+      console.log("uploadServerProxy with progress result", result);
+      return result?.downloadUrl || downloadUrl || uploadUrl;
+    } catch (e) {
+      console.error("uploadServerProxy progress error", e);
+      throw e;
+    }
+  }
+
+  const response = await fetchWithRetry(
+    uploadUrl,
+    {
+      method: "PUT",
+      headers: {
+        "Content-Type": contentType || "application/octet-stream",
+        "X-Upload-Token": uploadToken,
+      },
+      body: fileBlob,
+    },
+    { timeoutMs: 10 * 60 * 1000, retries: 2 },
+  );
+
+  console.log("uploadServerProxy response status", response.status);
+
+  if (!response.ok) {
+    const text = await response.text().catch(() => "");
+    console.error("uploadServerProxy failed text", text);
+    throw new Error(`Upload failed with status ${response.status}: ${text}`);
+  }
+
+  try {
+    const json = await response.json();
+    console.log("uploadServerProxy success json", json);
+    return json.downloadUrl || downloadUrl || uploadUrl;
+  } catch {
+    console.log("uploadServerProxy no json, falling back to urls");
+    return downloadUrl || uploadUrl;
+  }
 }
 
 export default uploadFile;

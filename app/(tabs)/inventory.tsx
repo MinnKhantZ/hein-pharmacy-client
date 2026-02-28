@@ -480,6 +480,8 @@ export default function InventoryScreen() {
                 setFormData({
                   ...formData,
                   quantity: calculateSyncedQty("linked"),
+                  expiry_date:
+                    selectedConversionItem.expiry_date || formData.expiry_date,
                 });
                 setTempConversions([
                   ...tempConversions,
@@ -518,7 +520,12 @@ export default function InventoryScreen() {
           currentQty > 0 ? "new" : otherQty > 0 ? "linked" : "none";
 
         if (syncSource === "linked") {
-          setFormData({ ...formData, quantity: calculateSyncedQty("linked") });
+          setFormData({
+            ...formData,
+            quantity: calculateSyncedQty("linked"),
+            expiry_date:
+              selectedConversionItem.expiry_date || formData.expiry_date,
+          });
         }
 
         setTempConversions([
@@ -569,6 +576,8 @@ export default function InventoryScreen() {
               setFormData({
                 ...formData,
                 quantity: calculateSyncedQty("linked"),
+                expiry_date:
+                  selectedConversionItem.expiry_date || formData.expiry_date,
               });
               doSaveConversion(
                 baseItemId,
@@ -596,7 +605,12 @@ export default function InventoryScreen() {
             : undefined;
 
       if (syncSource === selectedConversionItem.id) {
-        setFormData({ ...formData, quantity: calculateSyncedQty("linked") });
+        setFormData({
+          ...formData,
+          quantity: calculateSyncedQty("linked"),
+          expiry_date:
+            selectedConversionItem.expiry_date || formData.expiry_date,
+        });
       }
 
       await doSaveConversion(baseItemId, packageItemId, rate, syncSource);

@@ -6,21 +6,21 @@ import * as Sharing from "expo-sharing";
 import React, { useContext, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
-    ActivityIndicator,
-    Alert,
-    FlatList,
-    Image,
-    KeyboardAvoidingView,
-    Linking,
-    Modal,
-    Platform,
-    RefreshControl,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
+  ActivityIndicator,
+  Alert,
+  FlatList,
+  Image,
+  KeyboardAvoidingView,
+  Linking,
+  Modal,
+  Platform,
+  RefreshControl,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { AuthContext } from "../../contexts/AuthContext";
@@ -418,19 +418,6 @@ export default function InvoicesScreen() {
     }
   };
 
-  if (user?.username !== "admin") {
-    return (
-      <SafeAreaView style={styles.container}>
-        <View style={styles.emptyContainer}>
-          <Text style={styles.emptyTitle}>{t("Invoices")}</Text>
-          <Text style={styles.emptySubtitle}>
-            {t("Only admin can access invoice records")}
-          </Text>
-        </View>
-      </SafeAreaView>
-    );
-  }
-
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
@@ -752,6 +739,7 @@ const styles = StyleSheet.create({
   listContainer: {
     padding: 16,
     gap: 12,
+    paddingBottom: 50,
   },
   invoiceCard: {
     backgroundColor: "white",
@@ -959,7 +947,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   listFooterSpacer: {
-    height: 8,
+    height: 32,
   },
   searchContainer: {
     flexDirection: "row",

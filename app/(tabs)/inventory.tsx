@@ -1,21 +1,22 @@
 import DateTimePicker from "@react-native-community/datetimepicker";
 import { useLocalSearchParams } from "expo-router";
-import React, { useContext, useEffect, useState } from "react";
+import React, { useContext, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
-  ActivityIndicator,
-  Alert,
-  FlatList,
-  KeyboardAvoidingView,
-  Modal,
-  Platform,
-  RefreshControl,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View,
+    ActivityIndicator,
+    Alert,
+    FlatList,
+    KeyboardAvoidingView,
+    Modal,
+    Platform,
+    Pressable,
+    RefreshControl,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TextInput,
+    TouchableOpacity,
+    View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import OwnerSelector from "../../components/OwnerSelector";
@@ -149,6 +150,11 @@ export default function InventoryScreen() {
   const [conversionRate, setConversionRate] = useState("");
   const [savingConversion, setSavingConversion] = useState(false);
   const [tempConversions, setTempConversions] = useState<any[]>([]);
+  const [showConversionItemPicker, setShowConversionItemPicker] =
+    useState(false);
+  const conversionSearchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(
+    null,
+  );
 
   const formatDate = (dateString: string) => {
     if (!dateString) return "";
@@ -411,6 +417,7 @@ export default function InventoryScreen() {
 
   const resetConversionForm = () => {
     setShowAddConversion(false);
+    setShowConversionItemPicker(false);
     setConversionSearchQuery("");
     setConversionSearchResults([]);
     setSelectedConversionItem(null);
@@ -1222,45 +1229,124 @@ export default function InventoryScreen() {
                         <Text style={ucStyles.formLabel}>
                           {t("Search for an item to link:")}
                         </Text>
-                        <TextInput
-                          style={styles.input}
-                          placeholder={t("Search items...")}
-                          value={conversionSearchQuery}
-                          onChangeText={(text) => {
-                            setConversionSearchQuery(text);
-                            searchConversionItems(text);
-                          }}
-                          placeholderTextColor={placeholderTextColor}
-                        />
-
-                        {conversionSearchLoading && (
-                          <ActivityIndicator size="small" color="#2196F3" />
+                        {!selectedConversionItem && (
+                          <TouchableOpacity
+                            style={ucStyles.itemPickerButton}
+                            onPress={() => {
+                              setConversionSearchQuery("");
+                              setConversionSearchResults([]);
+                              setShowConversionItemPicker(true);
+                            }}
+                          >
+                            <Text style={ucStyles.itemPickerPlaceholder}>
+                              {t("Search items...")}
+                            </Text>
+                            <Text style={ucStyles.pickerArrow}>▼</Text>
+                          </TouchableOpacity>
                         )}
 
-                        {conversionSearchResults.length > 0 &&
-                          !selectedConversionItem && (
-                            <View style={ucStyles.searchResults}>
-                              {conversionSearchResults.map((item) => (
-                                <TouchableOpacity
-                                  key={item.id}
-                                  style={ucStyles.searchResultItem}
-                                  onPress={() => {
-                                    setSelectedConversionItem(item);
-                                    setConversionSearchResults([]);
-                                    setConversionSearchQuery(item.name);
+                        <Modal
+                          visible={showConversionItemPicker}
+                          transparent
+                          animationType="fade"
+                          presentationStyle="overFullScreen"
+                          statusBarTranslucent
+                          onRequestClose={() =>
+                            setShowConversionItemPicker(false)
+                          }
+                        >
+                          <View style={ucStyles.pickerOverlay}>
+                            <Pressable
+                              style={StyleSheet.absoluteFill}
+                              onPress={() => setShowConversionItemPicker(false)}
+                            />
+                            <KeyboardAvoidingView
+                              behavior={
+                                Platform.OS === "ios" ? "padding" : undefined
+                              }
+                              style={ucStyles.pickerWrapper}
+                            >
+                              <Pressable style={ucStyles.pickerContainer}>
+                                <TextInput
+                                  style={ucStyles.pickerSearchInput}
+                                  placeholder={t("Search items...")}
+                                  value={conversionSearchQuery}
+                                  onChangeText={(text) => {
+                                    setConversionSearchQuery(text);
+                                    if (conversionSearchTimerRef.current) {
+                                      clearTimeout(
+                                        conversionSearchTimerRef.current,
+                                      );
+                                    }
+                                    conversionSearchTimerRef.current =
+                                      setTimeout(() => {
+                                        searchConversionItems(text);
+                                      }, 300);
                                   }}
+                                  autoFocus
+                                  placeholderTextColor={placeholderTextColor}
+                                />
+                                {conversionSearchLoading && (
+                                  <ActivityIndicator
+                                    size="small"
+                                    color="#2196F3"
+                                    style={{ marginVertical: 8 }}
+                                  />
+                                )}
+                                <ScrollView
+                                  style={ucStyles.pickerResultsList}
+                                  nestedScrollEnabled
+                                  keyboardShouldPersistTaps="handled"
                                 >
-                                  <Text style={ucStyles.searchResultName}>
-                                    {item.name}
-                                  </Text>
-                                  <Text style={ucStyles.searchResultDetail}>
-                                    {item.unit} • {t("Stock:")}{" "}
-                                    {Math.floor(Number(item.quantity))}
+                                  {conversionSearchResults.length === 0 &&
+                                  conversionSearchQuery.trim() &&
+                                  !conversionSearchLoading ? (
+                                    <View style={ucStyles.pickerNoResults}>
+                                      <Text
+                                        style={ucStyles.pickerNoResultsText}
+                                      >
+                                        {t("No items found")}
+                                      </Text>
+                                    </View>
+                                  ) : (
+                                    conversionSearchResults.map((item) => (
+                                      <TouchableOpacity
+                                        key={item.id}
+                                        style={ucStyles.searchResultItem}
+                                        onPress={() => {
+                                          setSelectedConversionItem(item);
+                                          setConversionSearchQuery(item.name);
+                                          setConversionSearchResults([]);
+                                          setShowConversionItemPicker(false);
+                                        }}
+                                      >
+                                        <Text style={ucStyles.searchResultName}>
+                                          {item.name}
+                                        </Text>
+                                        <Text
+                                          style={ucStyles.searchResultDetail}
+                                        >
+                                          {item.unit} • {t("Stock:")}{" "}
+                                          {Math.floor(Number(item.quantity))}
+                                        </Text>
+                                      </TouchableOpacity>
+                                    ))
+                                  )}
+                                </ScrollView>
+                                <TouchableOpacity
+                                  style={ucStyles.pickerCloseButton}
+                                  onPress={() =>
+                                    setShowConversionItemPicker(false)
+                                  }
+                                >
+                                  <Text style={ucStyles.pickerCloseButtonText}>
+                                    {t("Close")}
                                   </Text>
                                 </TouchableOpacity>
-                              ))}
-                            </View>
-                          )}
+                              </Pressable>
+                            </KeyboardAvoidingView>
+                          </View>
+                        </Modal>
 
                         {selectedConversionItem && (
                           <>
@@ -1980,5 +2066,77 @@ const ucStyles = StyleSheet.create({
   convSaveBtnText: {
     color: "white",
     fontWeight: "600",
+  },
+  itemPickerButton: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    borderWidth: 1,
+    borderColor: "#ddd",
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 12,
+    backgroundColor: "white",
+    marginBottom: 8,
+  },
+  itemPickerPlaceholder: {
+    fontSize: 14,
+    color: "#999",
+    flex: 1,
+  },
+  pickerArrow: {
+    fontSize: 12,
+    color: "#666",
+    marginLeft: 8,
+  },
+  pickerOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.5)",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  pickerWrapper: {
+    width: "90%",
+    maxWidth: 480,
+  },
+  pickerContainer: {
+    backgroundColor: "white",
+    borderRadius: 12,
+    padding: 16,
+    maxHeight: 420,
+  },
+  pickerSearchInput: {
+    borderWidth: 1,
+    borderColor: "#ddd",
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    fontSize: 14,
+    marginBottom: 8,
+    backgroundColor: "#fafafa",
+  },
+  pickerResultsList: {
+    maxHeight: 260,
+  },
+  pickerNoResults: {
+    padding: 16,
+    alignItems: "center",
+  },
+  pickerNoResultsText: {
+    fontSize: 14,
+    color: "#999",
+    fontStyle: "italic",
+  },
+  pickerCloseButton: {
+    marginTop: 10,
+    padding: 12,
+    borderRadius: 8,
+    alignItems: "center",
+    backgroundColor: "#f5f5f5",
+  },
+  pickerCloseButtonText: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: "#333",
   },
 });
